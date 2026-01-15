@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>Yechao&#39;s Blog</title>
+    <link>http://localhost:1313/</link>
+    <description>Recent content on Yechao&#39;s Blog</description>
+    <generator>Hugo -- 0.154.2</generator>
+    <language>en-us</language>
+    <lastBuildDate>Wed, 14 Jan 2026 00:00:00 +0000</lastBuildDate>
+    <atom:link href="http://localhost:1313/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>VAE (Variational Auto Encoder)</title>
+      <link>http://localhost:1313/posts/vae-variational-auto-encoder/</link>
+      <pubDate>Wed, 14 Jan 2026 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/posts/vae-variational-auto-encoder/</guid>
+      <description>&lt;p&gt;Source: &lt;strong&gt;Stanford CS231N Deep Learning for Computer Vision | Spring 2025 | Lecture 13: Generative Models 1 (&lt;a href=&#34;https://www.youtube.com/watch?v=zbHXQRUNlH0&amp;amp;list=PLoROMvodv4rOmsNzYBMe0gJY2XS8AQg16&amp;amp;index=13&amp;amp;t=3005s&#34;&gt;link&lt;/a&gt;)&lt;/strong&gt;&lt;/p&gt;
+&lt;hr&gt;
+&lt;h1 id=&#34;implementation&#34;&gt;Implementation&lt;/h1&gt;
+&lt;h2 id=&#34;pseudo-code&#34;&gt;Pseudo Code&lt;/h2&gt;
+&lt;h3 id=&#34;encoder&#34;&gt;&lt;strong&gt;Encoder&lt;/strong&gt;&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;The input image dimension is [$B$, $C$, $H$, $W$] in this case is [1, 28, 28], where 28x28 is the image size of MNIST data.&lt;/li&gt;
+&lt;li&gt;The original classification head (&lt;code&gt;fc&lt;/code&gt;) is replaced to produce the mean (mu) and log-variance (&lt;code&gt;logvar&lt;/code&gt;) required for the VAE&amp;rsquo;s reparameterization trick.&lt;/li&gt;
+&lt;li&gt;The flow of encoder:&lt;code&gt;Image → Modified ResNet → Project → Chunk →&lt;/code&gt; &lt;code&gt;mu&lt;/code&gt;, &lt;code&gt;logvar&lt;/code&gt;
+&lt;ul&gt;
+&lt;li&gt;$[1, 28, 28]$ $\xrightarrow{\displaystyle \textsf{ResNet}}$ [1, 1024] $\xrightarrow{\displaystyle \textsf{Project}}$ $[1, 256]$ $\xrightarrow{\displaystyle \textsf{Chunk}}$ $([1, 128], [1, 128])$&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;decoder&#34;&gt;&lt;strong&gt;Decoder&lt;/strong&gt;&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;The flow of decoder: &lt;code&gt;Project -&amp;gt; Reshape -&amp;gt; Nx Conv+Up&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;The input to the decoder is the latent code $z$. The latent dimension is [$B$, $D_{in}$] ($D_{in}$ default to 128)
+&lt;ol&gt;
+&lt;li&gt;First it passes through a MLP → [$B$, $D_{out}$]&lt;/li&gt;
+&lt;li&gt;Reshape from [$B$, $D_{out}$] → $[B, C_{init}, H_{init}, W_{init}]$, where $H_{init}=W_{init}$&lt;/li&gt;
+&lt;/ol&gt;
+&lt;/li&gt;
+&lt;li&gt;Then it passes through N layers of Convolution + Up-sampleing layer → $[B, 1, H_{out}, W_{out}]$, where $H_{out}=W_{out}=28$&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;vae&#34;&gt;&lt;strong&gt;VAE&lt;/strong&gt;&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;The VAE takes data from MNIST dataset then pass it through a ResNet encoder.&lt;/li&gt;
+&lt;li&gt;Then sample latent code $z$ using $z = \mu +\sigma\cdot\epsilon$ where $\epsilon \sim N(0, I)$.&lt;/li&gt;
+&lt;li&gt;Then pass $z$ to the decoder.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;training&#34;&gt;&lt;strong&gt;Training&lt;/strong&gt;&lt;/h3&gt;
+&lt;ol&gt;
+&lt;li&gt;Run input data through encoder to get distribution over $z$.&lt;/li&gt;
+&lt;li&gt;Prior loss: Encoder output should be unit Gaussian (zero mean, unit variance).&lt;/li&gt;
+&lt;li&gt;Sample $z$ from encoder output $q_\phi(z\mid x)$ (Reparameterization trick).&lt;/li&gt;
+&lt;li&gt;Run $z$ through decoder to get predicted data mean.&lt;/li&gt;
+&lt;li&gt;Reconstruction loss: predicted mean should match $x$ in L2.&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h2 id=&#34;elaboration&#34;&gt;Elaboration&lt;/h2&gt;
+&lt;h3 id=&#34;1-the-core-concept&#34;&gt;1. The Core Concept&lt;/h3&gt;
+&lt;p&gt;Unlike standard Autoencoders which map &lt;code&gt;Image&lt;/code&gt; $\to$ &lt;code&gt;Code&lt;/code&gt; $\to$ &lt;code&gt;Image&lt;/code&gt;, a VAE maps &lt;strong&gt;&lt;code&gt;Image&lt;/code&gt; $\to$ &lt;code&gt;Distribution Parameters&lt;/code&gt; $\to$ &lt;code&gt;Image&lt;/code&gt;&lt;/strong&gt;.&lt;/p&gt;</description>
+    </item>
+  </channel>
+</rss>

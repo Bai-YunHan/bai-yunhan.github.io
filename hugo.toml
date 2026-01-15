@@ -1,0 +1,64 @@
+baseURL = 'https://yechaobai.github.io/'
+languageCode = 'en-us'
+title = "Yechao's Blog"
+theme = 'PaperMod'
+
+[params]
+  math = true
+  showtoc = true   # show Table of Contents
+  tocopen = true   # expand it by default (optional)
+  mainSections = ["posts"]
+  ShowReadingTime = true
+
+[params.homeInfoParams]
+  Title = "👋 Welcome to Yechao's Blog"
+  Content = "Hi, this is Yechao. I’m documenting my learning notes in this blog."
+
+[markup]
+  [markup.goldmark]
+    [markup.goldmark.extensions]
+      [markup.goldmark.extensions.passthrough]
+        enable = true
+        [markup.goldmark.extensions.passthrough.delimiters]
+          block = [['\[', '\]'], ['$$', '$$']]
+          inline = [['\(', '\)'], ['$', '$']]
+
+[[params.socialIcons]]
+  name = "linkedin"
+  url = "https://www.linkedin.com/in/yechao-bai/"
+
+[[params.socialIcons]]
+  name = "github"
+  url = "https://github.com/Bai-YunHan"
+
+[menu]
+  [[menu.main]]
+    identifier = "posts"
+    name = "Posts"
+    url = "/"
+    weight = 10
+
+  [[menu.main]]
+    identifier = "archives"
+    name = "Archive"
+    url = "/archives/"
+    weight = 20
+
+  [[menu.main]]
+    identifier = "search"
+    name = "Search"
+    url = "/search/"
+    weight = 30
+
+  [[menu.main]]
+    identifier = "tags"
+    name = "Tags"
+    url = "/tags/"
+    weight = 40
+
+[outputs]
+  home = ["HTML", "RSS", "JSON"]
+
+[taxonomies]
+  tag = "tags"
+  category = "categories"
