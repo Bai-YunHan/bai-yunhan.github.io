@@ -9,7 +9,7 @@ tags:
 
 VAEs are an especially important model to study if you want to understand modern generative modeling for two reasons. First, they introduced a clean probabilistic latent-variable framework for generation—showing how to learn a distribution over hidden representations and sample from it in a principled way. Second, VAEs remain central to state-of-the-art generative systems today: in many diffusion-based models (notably latent diffusion and Stable Diffusion), a VAE is the component that compresses images into a latent space and decodes generated latents back into images, making high-quality generation practical and efficient.
 
-In this blog, I have two goals: (1) to build intuition for variational autoencoders (VAEs), and (2) to lay out the cleanest possible pseudo-code for probabilistic generation. I present the material in a top-down way—starting with what a VAE is and how it works, then diving into why it works. The mathematical perspective is largely drawn from *Stanford CS231N: Deep Learning for Computer Vision (Spring 2025), Lecture 13: Generative Models 1*. Alongside the post, I provide a corresponding GitHub repository with the actual training and inference code to make the ideas concrete.
+In this blog, I have two goals: (1) to build intuition for variational autoencoders (VAEs), and (2) to lay out the cleanest possible pseudo-code for probabilistic generation. I present the material in a top-down way—starting with what a VAE is and how it works, then diving into why it works. The mathematical perspective is largely drawn from [Stanford CS231N: Deep Learning for Computer Vision (Spring 2025), Lecture 13: Generative Models 1](https://www.youtube.com/watch?v=zbHXQRUNlH0). Alongside the post, I provide a [corresponding GitHub repository](https://github.com/Bai-YunHan/miniVAE) with the actual training and inference code to make the ideas concrete.
 
 ---
 
@@ -322,12 +322,12 @@ Or use the BibTex citation:
 
 ```latex
 @article{Bai2026VAE,
-  title = {Dimistify VAE: Intuition, Math, and Implementation},
+  title = {Dimistify VAE: Intuition, Math, and Implementation}, https://bai-yunhan.github.io/posts/vae-variational-auto-encoder
   author = {Bai, Yechao},
-  journal = {yechaobai-github.io},
+  journal = {bai-yunhan.github.io},
   year = {2026},
   month = {Jan},
-  url = ""
+  url = "https://bai-yunhan.github.io/posts/vae-variational-auto-encoder/"
 }
 ```
 
