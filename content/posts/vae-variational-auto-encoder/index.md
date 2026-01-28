@@ -197,7 +197,7 @@ Since the true posterior $p_\theta(z|x)$ is impossible to calculate, we **app
 
 ## **The reconstruction loss and prior loss is fighting with each other**
 
-![image.png](/notion-assets/image.png)
+![image.png](image.png)
 
 This "tug-of-war" is one of the most fascinating parts of a VAE because you can actually *see* the result of these two forces fighting when you plot the latent space.
 
@@ -242,13 +242,13 @@ The KL divergence acts like a **spring** attached to the origin $(0,0)$.
 
 ## Role of $z_i$ in latent code $Z$
 
-![Auto-Encoding Variational Bayes, ICLR 2014.](/notion-assets/image%201.png)
+![Auto-Encoding Variational Bayes, ICLR 2014.](image-1.png)
 
 Auto-Encoding Variational Bayes, ICLR 2014.
 
 In a Variational Autoencoder (VAE), **$Z$** represents the latent code—a compressed, hidden representation of the input data. **$z_i$** refers to a specific individual dimension (or component) within this vector. The core idea shown here is **disentanglement**: the model attempts to map distinct, meaningful semantic features of the data to separate dimensions ($z_i$). For example, changing the value of one dimension ($z_1$) might smoothly transform the digit's identity (e.g., changing a 6 to a 0), while changing another dimension ($z_2$) might strictly alter the slant or thickness of the writing, without changing the digit itself.
 
-![Implementation of sampling $z_1$ and $z_2$ and set rest of $z_i$ to zeros.](/notion-assets/image%202.png)
+![Implementation of sampling $z_1$ and $z_2$ and set rest of $z_i$ to zeros.](image-2.png)
 
 Implementation of sampling $z_1$ and $z_2$ and set rest of $z_i$ to zeros.
 
@@ -517,4 +517,4 @@ $$
 \log p_{\theta}(x) \geq E_{z \sim q_{\phi}(z|x)} \left[ \log p_{\theta}(x|z) \right] - D_{KL} \left( q_{\phi}(z|x), p(z) \right)
 $$
 
-![image.png](/notion-assets/image%203.png)
+![image.png](image-3.png)
