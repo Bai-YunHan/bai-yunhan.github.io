@@ -1,4 +1,4 @@
-baseURL = 'https://bai-yunhan.github.io/yechaobai-github.io/'
+baseURL = 'https://bai-yunhan.github.io/'
 languageCode = 'en-us'
 title = "Yechao's Blog"
 theme = 'PaperMod'
