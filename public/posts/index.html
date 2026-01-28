@@ -153,16 +153,15 @@
 
 <article class="post-entry"> 
   <header class="entry-header">
-    <h2 class="entry-hint-parent">VAE (Variational Auto Encoder)
+    <h2 class="entry-hint-parent">Demystify VAE: Intuition, Math, and Implementation
     </h2>
   </header>
   <div class="entry-content">
-    <p>Source: Stanford CS231N Deep Learning for Computer Vision | Spring 2025 | Lecture 13: Generative Models 1 (link)
-Implementation Pseudo Code Encoder The input image dimension is [$B$, $C$, $H$, $W$] in this case is [1, 28, 28], where 28x28 is the image size of MNIST data. The original classification head (fc) is replaced to produce the mean (mu) and log-variance (logvar) required for the VAE’s reparameterization trick. The flow of encoder:Image → Modified ResNet → Project → Chunk → mu, logvar $[1, 28, 28]$ $\xrightarrow{\displaystyle \textsf{ResNet}}$ [1, 1024] $\xrightarrow{\displaystyle \textsf{Project}}$ $[1, 256]$ $\xrightarrow{\displaystyle \textsf{Chunk}}$ $([1, 128], [1, 128])$ Decoder The flow of decoder: Project -&gt; Reshape -&gt; Nx Conv&#43;Up The input to the decoder is the latent code $z$. The latent dimension is [$B$, $D_{in}$] ($D_{in}$ default to 128) First it passes through a MLP → [$B$, $D_{out}$] Reshape from [$B$, $D_{out}$] → $[B, C_{init}, H_{init}, W_{init}]$, where $H_{init}=W_{init}$ Then it passes through N layers of Convolution &#43; Up-sampleing layer → $[B, 1, H_{out}, W_{out}]$, where $H_{out}=W_{out}=28$ VAE The VAE takes data from MNIST dataset then pass it through a ResNet encoder. Then sample latent code $z$ using $z = \mu &#43;\sigma\cdot\epsilon$ where $\epsilon \sim N(0, I)$. Then pass $z$ to the decoder. Training Run input data through encoder to get distribution over $z$. Prior loss: Encoder output should be unit Gaussian (zero mean, unit variance). Sample $z$ from encoder output $q_\phi(z\mid x)$ (Reparameterization trick). Run $z$ through decoder to get predicted data mean. Reconstruction loss: predicted mean should match $x$ in L2. Elaboration 1. The Core Concept Unlike standard Autoencoders which map Image $\to$ Code $\to$ Image, a VAE maps Image $\to$ Distribution Parameters $\to$ Image.
+    <p>VAEs are an especially important model to study if you want to understand modern generative modeling for two reasons. First, they introduced a clean probabilistic latent-variable framework for generation—showing how to learn a distribution over hidden representations and sample from it in a principled way. Second, VAEs remain central to state-of-the-art generative systems today: in many diffusion-based models (notably latent diffusion and Stable Diffusion), a VAE is the component that compresses images into a latent space and decodes generated latents back into images, making high-quality generation practical and efficient.
 ...</p>
   </div>
-  <footer class="entry-footer"><span title='2026-01-14 00:00:00 +0000 UTC'>January 14, 2026</span>&nbsp;·&nbsp;<span>22 min</span></footer>
-  <a class="entry-link" aria-label="post link to VAE (Variational Auto Encoder)" href="http://localhost:1313/posts/vae-variational-auto-encoder/"></a>
+  <footer class="entry-footer"><span title='2026-01-27 00:00:00 +0000 UTC'>January 27, 2026</span>&nbsp;·&nbsp;<span>23 min</span></footer>
+  <a class="entry-link" aria-label="post link to Demystify VAE: Intuition, Math, and Implementation" href="http://localhost:1313/posts/vae-variational-auto-encoder/"></a>
 </article>
     </main>
     

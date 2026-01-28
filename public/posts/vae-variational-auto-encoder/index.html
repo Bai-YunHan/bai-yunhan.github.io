@@ -5,50 +5,9 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <meta name="robots" content="noindex, nofollow">
-<title>VAE (Variational Auto Encoder) | Yechao&#39;s Blog</title>
+<title>Demystify VAE: Intuition, Math, and Implementation | Yechao&#39;s Blog</title>
 <meta name="keywords" content="generative">
-<meta name="description" content="Source: Stanford CS231N Deep Learning for Computer Vision | Spring 2025 | Lecture 13: Generative Models 1 (link)
-
-Implementation
-Pseudo Code
-Encoder
-
-The input image dimension is [$B$, $C$, $H$, $W$] in this case is [1, 28, 28], where 28x28 is the image size of MNIST data.
-The original classification head (fc) is replaced to produce the mean (mu) and log-variance (logvar) required for the VAE&rsquo;s reparameterization trick.
-The flow of encoder:Image → Modified ResNet → Project → Chunk → mu, logvar
-
-$[1, 28, 28]$ $\xrightarrow{\displaystyle \textsf{ResNet}}$ [1, 1024] $\xrightarrow{\displaystyle \textsf{Project}}$ $[1, 256]$ $\xrightarrow{\displaystyle \textsf{Chunk}}$ $([1, 128], [1, 128])$
-
-
-
-Decoder
-
-The flow of decoder: Project -&gt; Reshape -&gt; Nx Conv&#43;Up
-The input to the decoder is the latent code $z$. The latent dimension is [$B$, $D_{in}$] ($D_{in}$ default to 128)
-
-First it passes through a MLP → [$B$, $D_{out}$]
-Reshape from [$B$, $D_{out}$] → $[B, C_{init}, H_{init}, W_{init}]$, where $H_{init}=W_{init}$
-
-
-Then it passes through N layers of Convolution &#43; Up-sampleing layer → $[B, 1, H_{out}, W_{out}]$, where $H_{out}=W_{out}=28$
-
-VAE
-
-The VAE takes data from MNIST dataset then pass it through a ResNet encoder.
-Then sample latent code $z$ using $z = \mu &#43;\sigma\cdot\epsilon$ where $\epsilon \sim N(0, I)$.
-Then pass $z$ to the decoder.
-
-Training
-
-Run input data through encoder to get distribution over $z$.
-Prior loss: Encoder output should be unit Gaussian (zero mean, unit variance).
-Sample $z$ from encoder output $q_\phi(z\mid x)$ (Reparameterization trick).
-Run $z$ through decoder to get predicted data mean.
-Reconstruction loss: predicted mean should match $x$ in L2.
-
-Elaboration
-1. The Core Concept
-Unlike standard Autoencoders which map Image $\to$ Code $\to$ Image, a VAE maps Image $\to$ Distribution Parameters $\to$ Image.">
+<meta name="description" content="VAEs are an especially important model to study if you want to understand modern generative modeling for two reasons. First, they introduced a clean probabilistic latent-variable framework for generation—showing how to learn a distribution over hidden representations and sample from it in a principled way. Second, VAEs remain central to state-of-the-art generative systems today: in many diffusion-based models (notably latent diffusion and Stable Diffusion), a VAE is the component that compresses images into a latent space and decodes generated latents back into images, making high-quality generation practical and efficient.">
 <meta name="author" content="">
 <link rel="canonical" href="http://localhost:1313/posts/vae-variational-auto-encoder/">
 <link crossorigin="anonymous" href="/assets/css/stylesheet.343cc480b9ffc8f04ccbe5e968ad674880cab773ec19905e93033065c1e7a804.css" integrity="sha256-NDzEgLn/yPBMy&#43;XpaK1nSIDKt3PsGZBekwMwZcHnqAQ=" rel="preload stylesheet" as="style">
@@ -190,9 +149,9 @@ Unlike standard Autoencoders which map Image $\to$ Code $\to$ Image, a VAE 
   <header class="post-header">
     
     <h1 class="post-title entry-hint-parent">
-      VAE (Variational Auto Encoder)
+      Demystify VAE: Intuition, Math, and Implementation
     </h1>
-    <div class="post-meta"><span title='2026-01-14 00:00:00 +0000 UTC'>January 14, 2026</span>&nbsp;·&nbsp;<span>22 min</span>
+    <div class="post-meta"><span title='2026-01-27 00:00:00 +0000 UTC'>January 27, 2026</span>&nbsp;·&nbsp;<span>23 min</span>
 
 </div>
   </header> <div class="toc">
@@ -238,11 +197,7 @@ Unlike standard Autoencoders which map Image $\to$ Code $\to$ Image, a VAE 
                     <a href="#formulation" aria-label="Formulation">Formulation</a><ul>
                         
                 <li>
-                    <a href="#goal--maximize-marginal-likelihood" aria-label="Goal — Maximize Marginal Likelihood">Goal — Maximize Marginal Likelihood</a><ul>
-                        
-                <li>
-                    <a href="#-summing-out-a-variable--looking-at-the-margin-of-the-joint-distribution" aria-label="🔹 Summing out a variable = looking at the margin of the joint distribution.">🔹 Summing out a variable = looking at the margin of the joint distribution.</a></li></ul>
-                </li>
+                    <a href="#goal--maximize-marginal-likelihood" aria-label="Goal — Maximize Marginal Likelihood">Goal — Maximize Marginal Likelihood</a></li>
                 <li>
                     <a href="#blocker--the-intractability" aria-label="Blocker ← The Intractability">Blocker ← The Intractability</a></li>
                 <li>
@@ -281,25 +236,9 @@ Unlike standard Autoencoders which map Image $\to$ Code $\to$ Image, a VAE 
                     </ul>
                 </li>
                 <li>
-                    <a href="#q--a" aria-label="Q &amp; A:">Q &amp; A:</a><ul>
-                        
+                    <a href="#citation" aria-label="Citation">Citation</a></li>
                 <li>
-                    <a href="#question-1" aria-label="Question-1">Question-1</a></li>
-                <li>
-                    <a href="#question-2" aria-label="Question-2">Question-2</a><ul>
-                        
-                <li>
-                    <a href="#1-verification-of-your-intuition" aria-label="1. Verification of Your Intuition">1. Verification of Your Intuition</a></li>
-                <li>
-                    <a href="#2-the-core-question-what-is-the-use-of-the-randomness" aria-label="2. The Core Question: What is the use of the randomness?">2. The Core Question: What is the use of the randomness?</a></li>
-                <li>
-                    <a href="#a-the-standard-autoencoder-the-dot" aria-label="A. The Standard Autoencoder (The Dot)">A. The Standard Autoencoder (The Dot)</a></li>
-                <li>
-                    <a href="#b-the-vae-the-bubble" aria-label="B. The VAE (The Bubble)">B. The VAE (The Bubble)</a></li>
-                <li>
-                    <a href="#short-answer" aria-label="Short Answer">Short Answer</a></li></ul>
-                </li></ul>
-                </li>
+                    <a href="#retrospection" aria-label="Retrospection">Retrospection</a></li>
                 <li>
                     <a href="#appendix" aria-label="Appendix">Appendix</a><ul>
                         
@@ -315,14 +254,15 @@ Unlike standard Autoencoders which map Image $\to$ Code $\to$ Image, a VAE 
     </details>
 </div>
 
-  <div class="post-content"><p>Source: <strong>Stanford CS231N Deep Learning for Computer Vision | Spring 2025 | Lecture 13: Generative Models 1 (<a href="https://www.youtube.com/watch?v=zbHXQRUNlH0&amp;list=PLoROMvodv4rOmsNzYBMe0gJY2XS8AQg16&amp;index=13&amp;t=3005s">link</a>)</strong></p>
+  <div class="post-content"><p>VAEs are an especially important model to study if you want to understand modern generative modeling for two reasons. First, they introduced a clean probabilistic latent-variable framework for generation—showing how to learn a distribution over hidden representations and sample from it in a principled way. Second, VAEs remain central to state-of-the-art generative systems today: in many diffusion-based models (notably latent diffusion and Stable Diffusion), a VAE is the component that compresses images into a latent space and decodes generated latents back into images, making high-quality generation practical and efficient.</p>
+<p>In this blog, I have two goals: (1) to build intuition for variational autoencoders (VAEs), and (2) to lay out the cleanest possible pseudo-code for probabilistic generation. I present the material in a top-down way—starting with what a VAE is and how it works, then diving into why it works. The mathematical perspective is largely drawn from <em>Stanford CS231N: Deep Learning for Computer Vision (Spring 2025), Lecture 13: Generative Models 1</em>. Alongside the post, I provide a corresponding GitHub repository with the actual training and inference code to make the ideas concrete.</p>
 <hr>
 <h1 id="implementation">Implementation<a hidden class="anchor" aria-hidden="true" href="#implementation">#</a></h1>
 <h2 id="pseudo-code">Pseudo Code<a hidden class="anchor" aria-hidden="true" href="#pseudo-code">#</a></h2>
 <h3 id="encoder"><strong>Encoder</strong><a hidden class="anchor" aria-hidden="true" href="#encoder">#</a></h3>
 <ul>
-<li>The input image dimension is [$B$, $C$, $H$, $W$] in this case is [1, 28, 28], where 28x28 is the image size of MNIST data.</li>
-<li>The original classification head (<code>fc</code>) is replaced to produce the mean (mu) and log-variance (<code>logvar</code>) required for the VAE&rsquo;s reparameterization trick.</li>
+<li>The input image dimension is [$B$, $C$, $H$, $W$]. In this project, we use the MNIST dataset, where each image is grayscale and has spatial resolution $28\times28$.</li>
+<li>A modified ResNet-18, pre-trained on ImageNet, is used as the encoder. The original classification head (<code>fc</code>) is replaced to produce the mean (<code>mu</code>) and log-variance (<code>logvar</code>) required for the VAE&rsquo;s reparameterization trick.</li>
 <li>The flow of encoder:<code>Image → Modified ResNet → Project → Chunk →</code> <code>mu</code>, <code>logvar</code>
 <ul>
 <li>$[1, 28, 28]$ $\xrightarrow{\displaystyle \textsf{ResNet}}$ [1, 1024] $\xrightarrow{\displaystyle \textsf{Project}}$ $[1, 256]$ $\xrightarrow{\displaystyle \textsf{Chunk}}$ $([1, 128], [1, 128])$</li>
@@ -331,28 +271,29 @@ Unlike standard Autoencoders which map Image $\to$ Code $\to$ Image, a VAE 
 </ul>
 <h3 id="decoder"><strong>Decoder</strong><a hidden class="anchor" aria-hidden="true" href="#decoder">#</a></h3>
 <ul>
+<li>The decoder consists of one <code>MLP</code> layer followed by several convolutional layers (<code>Conv</code>) with upsampling (<code>Up</code>).</li>
 <li>The flow of decoder: <code>Project -&gt; Reshape -&gt; Nx Conv+Up</code></li>
 <li>The input to the decoder is the latent code $z$. The latent dimension is [$B$, $D_{in}$] ($D_{in}$ default to 128)
 <ol>
-<li>First it passes through a MLP → [$B$, $D_{out}$]</li>
+<li>First it passes through a <code>MLP</code> → [$B$, $D_{out}$]</li>
 <li>Reshape from [$B$, $D_{out}$] → $[B, C_{init}, H_{init}, W_{init}]$, where $H_{init}=W_{init}$</li>
 </ol>
 </li>
-<li>Then it passes through N layers of Convolution + Up-sampleing layer → $[B, 1, H_{out}, W_{out}]$, where $H_{out}=W_{out}=28$</li>
+<li>Then it passes through $N$ layers of Convolution + Up-sampling layer → $[B, 1, H_{out}, W_{out}]$, where $H_{out}=W_{out}=28$</li>
 </ul>
 <h3 id="vae"><strong>VAE</strong><a hidden class="anchor" aria-hidden="true" href="#vae">#</a></h3>
 <ul>
-<li>The VAE takes data from MNIST dataset then pass it through a ResNet encoder.</li>
+<li>The VAE takes data from MNIST dataset then pass it through a ResNet encoder. The encoder outputs the parameters $\mu$ and $\sigma$.</li>
 <li>Then sample latent code $z$ using $z = \mu +\sigma\cdot\epsilon$ where $\epsilon \sim N(0, I)$.</li>
 <li>Then pass $z$ to the decoder.</li>
 </ul>
 <h3 id="training"><strong>Training</strong><a hidden class="anchor" aria-hidden="true" href="#training">#</a></h3>
 <ol>
-<li>Run input data through encoder to get distribution over $z$.</li>
-<li>Prior loss: Encoder output should be unit Gaussian (zero mean, unit variance).</li>
+<li>Run input data $x$ through encoder to get distribution over $z$.</li>
+<li>Use prior loss to enforce the encoder outputs to follow a unit Gaussian distribution (zero mean, unit variance).</li>
 <li>Sample $z$ from encoder output $q_\phi(z\mid x)$ (Reparameterization trick).</li>
-<li>Run $z$ through decoder to get predicted data mean.</li>
-<li>Reconstruction loss: predicted mean should match $x$ in L2.</li>
+<li>Run $z$ through decoder to get predicted data mean (Reconstruction).</li>
+<li>Use reconstruction loss to make predicted mean match $x$ under an L2 objective.</li>
 </ol>
 <h2 id="elaboration">Elaboration<a hidden class="anchor" aria-hidden="true" href="#elaboration">#</a></h2>
 <h3 id="1-the-core-concept">1. The Core Concept<a hidden class="anchor" aria-hidden="true" href="#1-the-core-concept">#</a></h3>
@@ -372,7 +313,7 @@ Unlike standard Autoencoders which map Image $\to$ Code $\to$ Image, a VAE 
 </ol>
 </li>
 <li>
-<p>Design Choice (Diagonal Covariance):</p>
+<p>Design Choice of using Diagonal Covariance:</p>
 <p>We assume the dimensions of $z$ are statistically independent. Instead of predicting a full $D \times D$ covariance matrix (which would handle correlations between features), we only predict the diagonal.</p>
 </li>
 <li>
@@ -443,10 +384,10 @@ $$
 </li>
 </ul>
 <h1 id="motivation-of-vae">Motivation of VAE<a hidden class="anchor" aria-hidden="true" href="#motivation-of-vae">#</a></h1>
-<p>While standard auto-encoders are effective for learning feature representations (via reconstruction), they fail as generative models because their latent space ($Z$) has no enforced structure. starting at <strong>[<a href="http://www.youtube.com/watch?v=zbHXQRUNlH0&amp;t=3078">51:18</a>].</strong></p>
+<p>While standard auto-encoders are effective for learning feature representations (via reconstruction), they fail as generative models because their latent space ($Z$) has no enforced structure. Starting at <strong>[<a href="http://www.youtube.com/watch?v=zbHXQRUNlH0&amp;t=3078">51:18</a>].</strong></p>
 <ul>
 <li><strong>The Limitation of Autoencoders [<a href="http://www.youtube.com/watch?v=zbHXQRUNlH0&amp;t=3078">51:18</a>]:</strong> if you want to use a standard autoencoder to generate <em>new</em> data, you would need to throw away the encoder and sample a latent vector $Z$ to pass through the decoder. However, because the autoencoder places no constraints on the latent space, you have no idea what the distribution of valid $Z$ vectors looks like.</li>
-<li><strong>&ldquo;Kicking the Can Down the Road&rdquo; [<a href="http://www.youtube.com/watch?v=zbHXQRUNlH0&amp;t=3117">51:57</a>]:</strong> He uses this phrase to describe the problem: just as we didn&rsquo;t know the distribution of the original data $X$, we now don&rsquo;t know the distribution of the latent vectors $Z$. Therefore, we are &ldquo;stuck&rdquo; because we cannot easily sample a valid code to generate a realistic image.</li>
+<li><strong>&ldquo;Kicking the Can Down the Road&rdquo; [<a href="http://www.youtube.com/watch?v=zbHXQRUNlH0&amp;t=3117">51:57</a>]:</strong> just as we didn&rsquo;t know the distribution of the original data $X$, we now don&rsquo;t know the distribution of the latent vectors $Z$. Therefore, we are &ldquo;stuck&rdquo; because we cannot easily sample a valid code to generate a realistic image.</li>
 <li><strong>The VAE Solution [<a href="http://www.youtube.com/watch?v=zbHXQRUNlH0&amp;t=3134">52:14</a>]:</strong> The motivation for the VAE is to &ldquo;force some structure on the $Z$&rsquo;s.&rdquo; By forcing the latent space to approximate a known distribution (typically a unit Gaussian), the VAE ensures that we <em>can</em> easily sample a random $Z$ from that known distribution and pass it through the decoder to generate valid new data.</li>
 </ul>
 <p>VAEs are essentially a &ldquo;probabilistic spin&rdquo; on traditional autoencoders designed specifically to enable this sampling capability <strong>[<a href="http://www.youtube.com/watch?v=zbHXQRUNlH0&amp;t=3188">53:08</a>]</strong>.</p>
@@ -528,10 +469,7 @@ $$
       </tr>
   </tbody>
 </table>
-<p>To get the probability of $x$ alone, you would <strong>sum across the row</strong>, and the result would appear in the <strong>margin</strong> of the table. Hence:</p>
-<h3 id="-summing-out-a-variable--looking-at-the-margin-of-the-joint-distribution">🔹 Summing out a variable = looking at the <strong>margin</strong> of the joint distribution.<a hidden class="anchor" aria-hidden="true" href="#-summing-out-a-variable--looking-at-the-margin-of-the-joint-distribution">#</a></h3>
-<p>That operation was literally written in the <em>margins</em> of the table → “<strong>marginal</strong> probability.”
-The process of computing it → “<strong>marginalization</strong>.”</p>
+<p>To get the probability of $x$ alone, you would <strong>sum across the row</strong>, and the result would appear in the <strong>margin</strong> of the table. Hence: <strong>Summing out a variable = looking at the margin of the joint distribution.</strong> That operation was literally written in the <em>margins</em> of the table → “<strong>marginal</strong> probability.” The process of computing it → “<strong>marginalization</strong>.”</p>
 </li>
 </ul>
 <h2 id="blocker--the-intractability">Blocker ← The Intractability<a hidden class="anchor" aria-hidden="true" href="#blocker--the-intractability">#</a></h2>
@@ -663,13 +601,26 @@ $$
   </tbody>
 </table>
 <p><strong>The Perceptual Loss (VGG Loss)</strong> or <strong>VQ-VAE</strong> are the standard modern techniques specifically designed to fix this blurriness in VAEs without needing a full GAN setup.</p>
-<h1 id="q--a">Q &amp; A:<a hidden class="anchor" aria-hidden="true" href="#q--a">#</a></h1>
-<h2 id="question-1">Question-1<a hidden class="anchor" aria-hidden="true" href="#question-1">#</a></h2>
-<p>Please validate my understanding of VAE below:
-We sample $z$ from the encoder, $z \sim q_\phi(z|x)$. $q_\phi(z|x)$ is a gaussian distribution, i.e. $z \sim N(\mu, \sigma^2)$. We use KL divergence loss to make $N(\mu, \sigma^2)$ look similar to a standard gaussian distribution. $z$ is a latent code (vector of length $D$).
-Say, we are reconstructing hand written digit of 10 classes (digit 0 ~ 9). The $z$ representing digit $0$ is a gaussian distribution, and the $z$ representing digit $1$ is another gaussian distribution. These cluster both locate near to zero mean. The totality of the 10 cluster conform to the standard gaussian distribution. The distinctiveness between each cluster comes from the difference in $\mu$ and $\sigma$ generated by the encoder. is my understanding correct?</p>
-<p>Answer:</p>
-<p>My understanding are confirmed to be correct.</p>
+<h1 id="citation">Citation<a hidden class="anchor" aria-hidden="true" href="#citation">#</a></h1>
+<p>Please cite this work as:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-latex" data-lang="latex"><span style="display:flex;"><span>Bai, Yechao. &#34;Dimistify VAE: Intuition, Math, and Implementation&#34;. Yechao&#39;s Log (Jan 2026).
+</span></span></code></pre></div><p>Or use the BibTex citation:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-latex" data-lang="latex"><span style="display:flex;"><span>@article{Bai2026VAE,
+</span></span><span style="display:flex;"><span>  title = {Dimistify VAE: Intuition, Math, and Implementation},
+</span></span><span style="display:flex;"><span>  author = {Bai, Yechao},
+</span></span><span style="display:flex;"><span>  journal = {yechaobai-github.io},
+</span></span><span style="display:flex;"><span>  year = {2026},
+</span></span><span style="display:flex;"><span>  month = {Jan},
+</span></span><span style="display:flex;"><span>  url = &#34;&#34;
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h1 id="retrospection"><strong>Retrospection</strong><a hidden class="anchor" aria-hidden="true" href="#retrospection">#</a></h1>
+<ul>
+<li>
+<p><strong>Question-1:</strong> In a VAE, does the KL term make each class (e.g., each digit 0–9) form its own Gaussian cluster in latent space near zero, such that the <em>mixture</em> of the 10 class-wise clusters matches a standard normal, and the class separability comes from different encoder-produced $\mu$ and $\sigma$?</p>
+<p>Concretely, We sample $z$ from the encoder, $z \sim q_\phi(z|x)$, where $q_\phi(z|x)$ is a gaussian distribution, i.e. $z \sim N(\mu, \sigma^2)$. We use KL divergence loss to make $N(\mu, \sigma^2)$ look similar to a standard gaussian distribution. $z$ is a latent code (vector of length $D$). Say, we are reconstructing hand written digit of 10 classes (digit 0 ~ 9). The $z$ representing digit $0$ is a gaussian distribution, and the $z$ representing digit $1$ is another gaussian distribution. These cluster both locate near to zero mean. The totality of the 10 cluster conform to the standard gaussian distribution. The distinctiveness between each cluster comes from the difference in $\mu$ and $\sigma$ generated by the encoder.</p>
+</li>
+<li>
+<p><strong>Answer: T</strong>he understanding is correct.</p>
 <p><strong>In summary, the VAE is a Master of Compromise</strong></p>
 <ul>
 <li>The VAE does <strong>clustering</strong> (via the reconstruction term), where each class (digit) gets its own localized cluster defined by its mean $\mu$.</li>
@@ -705,13 +656,16 @@ Imagine each input image is a <strong>bubble</strong>.</p>
 <li>The <strong>KL Loss</strong> wants all the bubbles to move to the center of the map and be exactly the same size.</li>
 <li><strong>The Training Process</strong> is the struggle to pack all these bubbles into a small, circular container (the Standard Normal Prior) without them overlapping so much that they lose their identity.</li>
 </ul>
-<h2 id="question-2">Question-2<a hidden class="anchor" aria-hidden="true" href="#question-2">#</a></h2>
-<p>Say, we are reconstructing hand written digit of 10 classes (digit 0 ~ 9).</p>
-<p>Regarding the encoder, when given 10 input images of digit ‘1’, the output $\mu$ and $\sigma$ would be very close if not the same. Namely, the latent code $z$ of the image of digit ‘1’ belong to the same cluster. am i right?</p>
+</li>
+<li>
+<p><strong>Question-2:</strong> What is the use of the randomness in VAE ?</p>
+<p>Concretely, let’s say we are reconstructing hand written digit of 10 classes (digit 0 ~ 9).</p>
+<p>Regarding the encoder, when given 10 input images of digit ‘1’, the output $\mu$ and $\sigma$ would be very close if not the same. Namely, the latent code $z$ of the image of digit ‘1’ belong to the same cluster. Am i right?</p>
 <p>During inference, if we feed the same image of ‘1’ to the encoder, though the $\mu$ and $\sigma$  output by encoder is the same, due to the randomness of $\epsilon$, the output $z$ would be different. namely, the latent code for the same input image is not deterministic. Am i right? In contradiction, for auto-encoder, the latent code for the same input image is deterministic. What is the use of the randomness?</p>
-<p>Answer:</p>
-<p>Let&rsquo;s validate your points and then dive into the &ldquo;why&rdquo; of the randomness, which is the heart of the VAE magic.</p>
-<h3 id="1-verification-of-your-intuition">1. Verification of Your Intuition<a hidden class="anchor" aria-hidden="true" href="#1-verification-of-your-intuition">#</a></h3>
+</li>
+<li>
+<p><strong>Answer:</strong> Randomness is the heart of the VAE magic.</p>
+<p><strong>1. Verification of Intuition</strong></p>
 <p><strong>Point 1: Do 10 images of digit &lsquo;1&rsquo; cluster together?</strong></p>
 <ul>
 <li><strong>Yes, you are right.</strong></li>
@@ -724,20 +678,20 @@ Imagine each input image is a <strong>bubble</strong>.</p>
 <li>If you feed the exact same image into a VAE multiple times (and you are using the sampling step), you will get a slightly different vector $z$ each time because of the random noise $\epsilon$.</li>
 <li><em>Note:</em> In practical deployment (e.g., if using a VAE just to compress data), engineers often skip the sampling and just use $\mu$ to get a deterministic code. But strictly speaking, the mathematical definition of the VAE inference path involves this randomness.</li>
 </ul>
-<h3 id="2-the-core-question-what-is-the-use-of-the-randomness">2. The Core Question: What is the use of the randomness?<a hidden class="anchor" aria-hidden="true" href="#2-the-core-question-what-is-the-use-of-the-randomness">#</a></h3>
-<p>You asked: <em>&ldquo;For auto-encoder, the latent code is deterministic. What is the use of the randomness?&rdquo;</em></p>
-<p>This is the most critical concept in VAEs. The randomness transforms the latent space from a <strong>discrete lookup table</strong> into a <strong>continuous landscape</strong>.</p>
-<p>Here is the analogy: <strong>The Dot vs. The Bubble.</strong></p>
-<h3 id="a-the-standard-autoencoder-the-dot">A. The Standard Autoencoder (The Dot)<a hidden class="anchor" aria-hidden="true" href="#a-the-standard-autoencoder-the-dot">#</a></h3>
+<p><strong>2. The Core Question: What is the use of the randomness?</strong></p>
+<p>You asked: <em>&ldquo;For auto-encoder, the latent code is deterministic. What is the use of the randomness?&rdquo;</em>
+This is the most critical concept in VAEs. The randomness transforms the latent space from a <strong>discrete lookup table</strong> into a <strong>continuous landscape</strong>.
+Here is the analogy: <strong>The Dot vs. The Bubble.</strong></p>
+<p><strong>A. The Standard Autoencoder (The Dot)</strong></p>
 <ul>
 <li><strong>Mechanism:</strong> It maps an input image to a single, precise point (a dot) in space.</li>
 <li><strong>The Problem:</strong> The decoder only learns to decode <em>that specific point</em>.</li>
 <li><strong>The Consequence:</strong> If you sample a point just slightly next to that dot—in the &ldquo;empty space&rdquo; between a &lsquo;1&rsquo; and a &lsquo;2&rsquo;—the decoder has no idea what to do. It often produces garbage or static because it never learned to handle that specific coordinate during training. The latent space is full of &ldquo;holes.&rdquo;</li>
 </ul>
-<h3 id="b-the-vae-the-bubble">B. The VAE (The Bubble)<a hidden class="anchor" aria-hidden="true" href="#b-the-vae-the-bubble">#</a></h3>
+<p><strong>B. The VAE (The Bubble)</strong></p>
 <ul>
-<li><strong>Mechanism:</strong> By predicting a mean ($\mu$) and variance ($\sigma$) and adding noise, the encoder maps the input image not to a dot, but to a <strong>cloud</strong> or <strong>bubble</strong> of probability.</li>
-<li><strong>The Effect:</strong> During training, the decoder is forced to reconstruct the digit &lsquo;1&rsquo; not just from a single point $\mu$, but from <em>any</em> point sampled within that bubble ($z$).</li>
+<li><strong>Mechanism:</strong> By predicting a mean $\mu$ and variance $\sigma$ and adding noise, the encoder maps the input image not to a dot, but to a <strong>cloud</strong> or <strong>bubble</strong> of probability.</li>
+<li><strong>The Effect:</strong> During training, the decoder is forced to reconstruct the digit &lsquo;1&rsquo; not just from a single point $\mu$, but from <em>any</em> point sampled within that bubble $z$.</li>
 <li><strong>The &ldquo;Use&rdquo; of Randomness:</strong>
 <ol>
 <li><strong>Forcing Continuity (Smoothness):</strong> Because the decoder must reconstruct a &lsquo;1&rsquo; from anywhere inside the bubble, it learns that points <em>near</em> each other should produce similar outputs. This eliminates the &ldquo;holes.&rdquo; If two bubbles (say, a &lsquo;1&rsquo; and a &lsquo;7&rsquo;) overlap slightly, the decoder learns to generate a hybrid digit in that overlapping region.</li>
@@ -745,8 +699,9 @@ Imagine each input image is a <strong>bubble</strong>.</p>
 </ol>
 </li>
 </ul>
-<h3 id="short-answer">Short Answer<a hidden class="anchor" aria-hidden="true" href="#short-answer">#</a></h3>
 <p>The randomness prevents the model from &ldquo;memorizing&rdquo; specific points. It forces the model to learn a <strong>region</strong> for each digit, ensuring that the latent space is smooth, continuous, and safe to sample from for generation.</p>
+</li>
+</ul>
 <h1 id="appendix">Appendix<a hidden class="anchor" aria-hidden="true" href="#appendix">#</a></h1>
 <h2 id="derivation-of-the-gaussian-loss">Derivation of the Gaussian Loss<a hidden class="anchor" aria-hidden="true" href="#derivation-of-the-gaussian-loss">#</a></h2>
 <p>Here is the derivation of why the loss function looks the way it does, starting from the definition of the Gaussian distribution.</p>
