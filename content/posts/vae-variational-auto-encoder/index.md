@@ -315,14 +315,14 @@ A pixel at the edge of an object could plausibly be Black (background) OR White 
 Please cite this work as:
 
 ```latex
-Bai, Yechao. "Dimistify VAE: Intuition, Math, and Implementation". Yechao's Log (Jan 2026).
+Bai, Yechao. "Dimistify VAE: Intuition, Math, and Implementation". Yechao's Log (Jan 2026). https://bai-yunhan.github.io/posts/vae-variational-auto-encoder
 ```
 
 Or use the BibTex citation:
 
 ```latex
 @article{Bai2026VAE,
-  title = {Dimistify VAE: Intuition, Math, and Implementation}, https://bai-yunhan.github.io/posts/vae-variational-auto-encoder
+  title = {Dimistify VAE: Intuition, Math, and Implementation},
   author = {Bai, Yechao},
   journal = {bai-yunhan.github.io},
   year = {2026},
