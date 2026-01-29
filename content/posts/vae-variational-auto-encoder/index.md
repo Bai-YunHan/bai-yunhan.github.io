@@ -1,5 +1,5 @@
 ---
-title: "Demystify VAE: Intuition, Math, and Implementation"
+title: "VAE Revisited 2026: The Foundation of Generative AI"
 draft: false
 math: true
 date: 2026-01-27
@@ -7,9 +7,9 @@ tags:
   - generative
 --- 
 
-VAEs are an especially important model to study if you want to understand modern generative modeling for two reasons. First, they introduced a clean probabilistic latent-variable framework for generation—showing how to learn a distribution over hidden representations and sample from it in a principled way. Second, VAEs remain central to state-of-the-art generative systems today: in many diffusion-based models (notably latent diffusion and Stable Diffusion), a VAE is the component that compresses images into a latent space and decodes generated latents back into images, making high-quality generation practical and efficient.
+VAEs are an especially important model to study if you want to understand modern generative modeling for two reasons. First, they introduced a clean probabilistic latent-variable framework for generation—showing how to learn a distribution over hidden representations and sample from it in a principled way. Second, VAEs remain central to state-of-the-art generative systems today: in many diffusion-based models (notably latent diffusion and Stable Diffusion [1]), a VAE is the component that compresses images into a latent space and decodes generated latents back into images, making high-quality generation practical and efficient.
 
-In this blog, I have two goals: (1) to build intuition for variational autoencoders (VAEs), and (2) to lay out the cleanest possible pseudo-code for probabilistic generation. I present the material in a top-down way—starting with what a VAE is and how it works, then diving into why it works. The mathematical perspective is largely drawn from [Stanford CS231N: Deep Learning for Computer Vision (Spring 2025), Lecture 13: Generative Models 1](https://www.youtube.com/watch?v=zbHXQRUNlH0). Alongside the post, I provide a [corresponding GitHub repository](https://github.com/Bai-YunHan/miniVAE) with the actual training and inference code to make the ideas concrete.
+In this blog, I have two goals: (1) to build intuition for variational autoencoders (VAEs), and (2) to lay out the cleanest possible pseudo-code for probabilistic generation. I present the material in a top-down way—starting with what a VAE is and how it works, then diving into why it works. The mathematical perspective is largely drawn from [Stanford CS231N: Deep Learning for Computer Vision (Spring 2025), Lecture 13: Generative Models 1](https://www.youtube.com/watch?v=zbHXQRUNlH0) [2]. Alongside the post, I provide a [corresponding GitHub repository](https://github.com/Bai-YunHan/miniVAE) with the actual training and inference code to make the ideas concrete.
 
 ---
 
@@ -20,7 +20,7 @@ In this blog, I have two goals: (1) to build intuition for variational autoencod
 ### **Encoder**
 
 - The input image dimension is [$B$, $C$, $H$, $W$]. In this project, we use the MNIST dataset, where each image is grayscale and has spatial resolution $28\times28$.
-- A modified ResNet-18, pre-trained on ImageNet, is used as the encoder. The original classification head (`fc`) is replaced to produce the mean (`mu`) and log-variance (`logvar`) required for the VAE's reparameterization trick.
+- A modified ResNet-18 [3], pre-trained on ImageNet, is used as the encoder. The original classification head (`fc`) is replaced to produce the mean (`mu`) and log-variance (`logvar`) required for the VAE's reparameterization trick.
 - The flow of encoder:`Image → Modified ResNet → Project → Chunk →` `mu`, `logvar`
     - $[1, 28, 28]$ $\xrightarrow{\displaystyle \textsf{ResNet}}$ [1, 1024] $\xrightarrow{\displaystyle \textsf{Project}}$ $[1, 256]$ $\xrightarrow{\displaystyle \textsf{Chunk}}$ $([1, 128], [1, 128])$
 
@@ -244,7 +244,7 @@ The KL divergence acts like a **spring** attached to the origin $(0,0)$.
 
 ![Auto-Encoding Variational Bayes, ICLR 2014.](image-1.png)
 
-Auto-Encoding Variational Bayes, ICLR 2014.
+Auto-Encoding Variational Bayes, ICLR 2014 [4].
 
 In a Variational Autoencoder (VAE), **$Z$** represents the latent code—a compressed, hidden representation of the input data. **$z_i$** refers to a specific individual dimension (or component) within this vector. The core idea shown here is **disentanglement**: the model attempts to map distinct, meaningful semantic features of the data to separate dimensions ($z_i$). For example, changing the value of one dimension ($z_1$) might smoothly transform the digit's identity (e.g., changing a 6 to a 0), while changing another dimension ($z_2$) might strictly alter the slant or thickness of the writing, without changing the digit itself.
 
@@ -297,7 +297,7 @@ A pixel at the edge of an object could plausibly be Black (background) OR White 
 - **Low Frequency (Structure):** Where is the head? Where is the background? VAEs are great at this because the "average" of a head is still roughly a head shape.
 - **High Frequency (Texture/Edges):** Where is this specific hair strand? Where is the pore on the skin? The "average" of many possible hair strand positions is just a smooth blur. Since VAEs optimize for the average case, they effectively apply a **low-pass filter** to the image, smoothing out all the sharp "high frequency" noise that our eyes interpret as realistic detail.
 
-### Comparison: Why GANs don't blur
+### Comparison: Why GANs [5] don't blur
 
 - **VAE (MSE):** "I must be close to the pixel values on average. I will be safe and blurry."
 - **GAN (Discriminator):** "I don't care if the stripe is at pixel 100 or 101, but if it's gray/blurry, the Discriminator will know it's fake. I must pick **one** sharp location, even if I guess wrong."
@@ -308,28 +308,7 @@ A pixel at the edge of an object could plausibly be Black (background) OR White 
 | **L1 Loss** | Minimize absolute error; fit the *median*. | **Slightly sharper**, but still blurry compared to GANs. |
 | **Adversarial** | Fool a judge; match the *distribution*. | **Sharp.** Forces a decision (collapse to a mode) rather than an average. |
 
-**The Perceptual Loss (VGG Loss)** or **VQ-VAE** are the standard modern techniques specifically designed to fix this blurriness in VAEs without needing a full GAN setup.
-
-# Citation
-
-Please cite this work as:
-
-```latex
-Bai, Yechao. "Dimistify VAE: Intuition, Math, and Implementation". Yechao's Log (Jan 2026). https://bai-yunhan.github.io/posts/vae-variational-auto-encoder
-```
-
-Or use the BibTex citation:
-
-```latex
-@article{Bai2026VAE,
-  title = {Dimistify VAE: Intuition, Math, and Implementation},
-  author = {Bai, Yechao},
-  journal = {bai-yunhan.github.io},
-  year = {2026},
-  month = {Jan},
-  url = "https://bai-yunhan.github.io/posts/vae-variational-auto-encoder/"
-}
-```
+**The Perceptual Loss (VGG Loss)** [6] or **VQ-VAE** [7] are the standard modern techniques specifically designed to fix this blurriness in VAEs without needing a full GAN setup.
 
 # **Retrospection**
 
@@ -407,7 +386,6 @@ Or use the BibTex citation:
         2. **Dense Packing:** The KL divergence (the "spring" we discussed earlier) tries to pack these bubbles as close to the center as possible without crushing them. Because they are bubbles (taking up volume) and not dots (infinitely small), they fill up the latent space completely.
     
     The randomness prevents the model from "memorizing" specific points. It forces the model to learn a **region** for each digit, ensuring that the latent space is smooth, continuous, and safe to sample from for generation.
-    
 
 # Appendix
 
@@ -518,3 +496,55 @@ $$
 $$
 
 ![image.png](image-3.png)
+
+---
+
+# Citation
+
+Please cite this work as:
+
+```latex
+Bai, Yechao. "VAE Revisited 2026: The Foundation of Generative AI". Yechao's Log (Jan 2026). https://bai-yunhan.github.io/posts/vae-variational-auto-encoder
+```
+
+Or use the BibTex citation:
+
+```latex
+@article{Bai2026VAE,
+  title = {VAE Revisited 2026: The Foundation of Generative AI},
+  author = {Bai, Yechao},
+  journal = {bai-yunhan.github.io},
+  year = {2026},
+  month = {Jan},
+  url = "https://bai-yunhan.github.io/posts/vae-variational-auto-encoder/"
+}
+```
+
+# References
+
+1. **High-Resolution Image Synthesis with Latent Diffusion Models** (Stable Diffusion)  
+   Rombach, R., Blattmann, A., Lorenz, D., Esser, P., & Ommer, B. (2022). *Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)*.  
+   [arXiv:2112.10752](https://arxiv.org/abs/2112.10752)
+
+2. **Stanford CS231N: Deep Learning for Computer Vision** (Lecture 13, Spring 2025)  
+   [YouTube Link](https://www.youtube.com/watch?v=zbHXQRUNlH0)
+
+3. **Deep Residual Learning for Image Recognition** (ResNet)  
+   He, K., Zhang, X., Ren, S., & Sun, J. (2016). *Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition (CVPR)*.  
+   [arXiv:1512.03385](https://arxiv.org/abs/1512.03385)
+
+4. **Auto-Encoding Variational Bayes** (Original VAE Paper)  
+   Kingma, D. P., & Welling, M. (2014). Auto-Encoding Variational Bayes. *International Conference on Learning Representations (ICLR)*.  
+   [arXiv:1312.6114](https://arxiv.org/abs/1312.6114)
+
+5. **Generative Adversarial Nets** (GAN)  
+   Goodfellow, I., et al. (2014). *Advances in Neural Information Processing Systems (NeurIPS)*.  
+   [arXiv:1406.2661](https://arxiv.org/abs/1406.2661)
+
+6. **Perceptual Losses for Real-Time Style Transfer and Super-Resolution**  
+   Johnson, J., Alahi, A., & Fei-Fei, L. (2016). *European Conference on Computer Vision (ECCV)*.  
+   [arXiv:1603.08155](https://arxiv.org/abs/1603.08155)
+
+7. **Neural Discrete Representation Learning** (VQ-VAE)  
+   van den Oord, A., Vinyals, O., & Kavukcuoglu, K. (2017). *Advances in Neural Information Processing Systems (NeurIPS)*.  
+   [arXiv:1711.00937](https://arxiv.org/abs/1711.00937)
