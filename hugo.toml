@@ -10,6 +10,9 @@ theme = 'PaperMod'
   mainSections = ["posts"]
   ShowReadingTime = true
 
+[params.analytics.google]
+  SiteVerificationTag = "RskRZT3ZM_y-1j7BGujVZvbmoifgau1iF8jqSskz5a4"
+
 [params.homeInfoParams]
   Title = "👋 Welcome to Yechao's Blog"
   Content = "Hi, this is Yechao. I’m documenting my learning notes in this blog."
@@ -57,7 +60,7 @@ theme = 'PaperMod'
     weight = 40
 
 [outputs]
-  home = ["HTML", "RSS", "JSON"]
+  home = ["HTML", "RSS", "JSON", "Robots"]
 
 [taxonomies]
   tag = "tags"
