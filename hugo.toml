@@ -2,7 +2,9 @@ baseURL = 'https://bai-yunhan.github.io/'
 languageCode = 'en-us'
 title = "Yechao's Blog"
 theme = 'PaperMod'
-googleAnalytics = 'G-J4WQ95SS8J'
+
+[services.googleAnalytics]
+id = 'G-J4WQ95SS8J'
 
 [params]
   math = true
