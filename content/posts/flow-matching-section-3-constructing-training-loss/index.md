@@ -84,13 +84,13 @@ $$
 \mathbb{E}_{t \sim \text{Unif}, x \sim p_t}
 \left[\left\|u_t^\theta(x)\right\|^2 - 2\,u_t^\theta(x)^\top u_t^{\text{target}}(x) + \left\|u_t^{\text{target}}(x)\right\|^2\right] \\
 &\overset{(iii)}{=}
-\mathbb{E}_{t \sim \text{Unif}, x \sim p_t}\left[\left\|u_t^\theta(x)\right\|^2\right]
-- 2\mathbb{E}_{t \sim \text{Unif}, x \sim p_t}\left[u_t^\theta(x)^\top u_t^{\text{target}}(x)\right]
-+ \underbrace{\mathbb{E}_{t \sim \text{Unif}_{[0,1]}, x \sim p_t}\left[\left\|u_t^{\text{target}}(x)\right\|^2\right]}_{=:C_1} \\
+\mathbb{E}_{t \sim \text{Unif}, x \sim p_t}\left[\left\|u_t^\theta(x)\right\|^2\right] -
+2\mathbb{E}_{t \sim \text{Unif}, x \sim p_t}\left[u_t^\theta(x)^\top u_t^{\text{target}}(x)\right] +
+\underbrace{\mathbb{E}_{t \sim \text{Unif}_{[0,1]}, x \sim p_t}\left[\left\|u_t^{\text{target}}(x)\right\|^2\right]}_{=:C_1} \\
 &\overset{(iv)}{=}
 \mathbb{E}_{t \sim \text{Unif}, z \sim p_{\text{data}}, x \sim p_t(\cdot|z)}
-\left[\left\|u_t^\theta(x)\right\|^2\right]
-- 2\,{\color{green}\boxed{\color{white}{\mathbb{E}_{t \sim \text{Unif}, x \sim p_t}\left[u_t^\theta(x)^\top u_t^{\text{target}}(x)\right]}}} + C_1
+\left[\left\|u_t^\theta(x)\right\|^2\right] -
+2\,{\color{green}\boxed{\color{white}{\mathbb{E}_{t \sim \text{Unif}, x \sim p_t}\left[u_t^\theta(x)^\top u_t^{\text{target}}(x)\right]}}} + C_1
 \end{aligned}
 $$
 
@@ -154,25 +154,25 @@ $$
 \mathcal{L}_{\text{FM}}(\theta)
 &\overset{(i)}{=}
 \mathbb{E}_{t \sim \text{Unif}, z \sim p_{\text{data}}, x \sim p_t(\cdot|z)}
-\left[\left\|u_t^\theta(x)\right\|^2\right]
-- 2\mathbb{E}_{t \sim \text{Unif}, z \sim p_{\text{data}}, x \sim p_t(\cdot|z)}
-\left[u_t^\theta(x)^\top u_t^{\text{target}}(x|z)\right]
-+ C_1 \\
+\left[\left\|u_t^\theta(x)\right\|^2\right] -
+2\mathbb{E}_{t \sim \text{Unif}, z \sim p_{\text{data}}, x \sim p_t(\cdot|z)}
+\left[u_t^\theta(x)^\top u_t^{\text{target}}(x|z)\right] +
+C_1 \\
 &\overset{(ii)}{=}
 \mathbb{E}_{t \sim \text{Unif}, z \sim p_{\text{data}}, x \sim p_t(\cdot|z)}
 \left[
-\left\|u_t^\theta(x)\right\|^2
-- 2u_t^\theta(x)^\top u_t^{\text{target}}(x|z)
+\left\|u_t^\theta(x)\right\|^2 -
+2u_t^\theta(x)^\top u_t^{\text{target}}(x|z)
 {\color{cyan}+ \left\|u_t^{\text{target}}(x|z)\right\|^2}
 {\color{red}- \left\|u_t^{\text{target}}(x|z)\right\|^2}
-\right]
-+ C_1 \\
+\right] +
+C_1 \\
 &\overset{(iii)}{=}
 \mathbb{E}_{t \sim \text{Unif}, z \sim p_{\text{data}}, x \sim p_t(\cdot|z)}
-\left[\left\|u_t^\theta(x) - u_t^{\text{target}}(x|z)\right\|^2\right]
-+ \underbrace{\mathbb{E}_{t \sim \text{Unif}, z \sim p_{\text{data}}, x \sim p_t(\cdot|z)}
-\left[-\left\|u_t^{\text{target}}(x|z)\right\|^2\right]}_{C_2}
-+ C_1 \\
+\left[\left\|u_t^\theta(x) - u_t^{\text{target}}(x|z)\right\|^2\right] +
+\underbrace{\mathbb{E}_{t \sim \text{Unif}, z \sim p_{\text{data}}, x \sim p_t(\cdot|z)}
+\left[-\left\|u_t^{\text{target}}(x|z)\right\|^2\right]}_{C_2} +
+C_1 \\
 &\overset{(iv)}{=}
 \mathcal{L}_{\text{CFM}}(\theta) + \underbrace{C_2 + C_1}_{=:C}.
 \end{aligned}
