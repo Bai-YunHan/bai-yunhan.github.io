@@ -160,4 +160,4 @@ So the whole story fits together naturally. Generation can be understood as **sa
 
 [1] Peter Holderrieth and Ezra Erives. *Introduction to Flow Matching and Diffusion Models*. 2025. <https://diffusion.csail.mit.edu/>
 
-[2] Bai-YunHan. *Flow-matching-and-Diffusion-Model-Fundamentals*. GitHub repository. <https://github.com/Bai-YunHan/Flow-matching-and-Diffusion-Model-Fundamentals>
+[2] Bai-YunHan. *Companion code for Introduction to Flow Matching Model*. GitHub repository. <https://github.com/Bai-YunHan/Companion-code-for-Introduction-to-Flow-Matching-Model>
