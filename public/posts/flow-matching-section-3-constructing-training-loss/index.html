@@ -1,39 +1,354 @@
-<!doctype html><html lang=en dir=auto data-theme=auto><head><meta charset=utf-8><meta http-equiv=X-UA-Compatible content="IE=edge"><meta name=viewport content="width=device-width,initial-scale=1,shrink-to-fit=no"><meta name=robots content="index, follow"><title>Introduction to Flow Matching Model, Part 3 of 3: Constructing the Training Loss | Yechao's Blog</title><meta name=keywords content="generative"><meta name=description content="Constructing the Training Loss
-Section 1 framed generative modeling as sampling through transformation: start from a simple distribution and transport samples toward the data distribution by integrating an ODE. In that picture, the learned vector field is the local motion rule, and the induced flow is the global transformation that turns noise into data.
-Section 2 then showed how to construct the relevant target vector field. By introducing conditional and marginal probability paths, we obtained a closed-form expression for the tractable conditional vector field $u_t^{\text{target}}(x \mid z)$ and saw, via the marginalization trick, how these conditional fields assemble into the marginal vector field $u_t^{\text{target}}(x)$ that actually governs the distribution-level transport."><meta name=author content><link rel=canonical href=https://bai-yunhan.github.io/posts/flow-matching-section-3-constructing-training-loss/><meta name=google-site-verification content="RskRZT3ZM_y-1j7BGujVZvbmoifgau1iF8jqSskz5a4"><link crossorigin=anonymous href=/assets/css/stylesheet.343cc480b9ffc8f04ccbe5e968ad674880cab773ec19905e93033065c1e7a804.css integrity="sha256-NDzEgLn/yPBMy+XpaK1nSIDKt3PsGZBekwMwZcHnqAQ=" rel="preload stylesheet" as=style><link rel=icon href=https://bai-yunhan.github.io/favicon.ico><link rel=icon type=image/png sizes=16x16 href=https://bai-yunhan.github.io/favicon-16x16.png><link rel=icon type=image/png sizes=32x32 href=https://bai-yunhan.github.io/favicon-32x32.png><link rel=apple-touch-icon href=https://bai-yunhan.github.io/apple-touch-icon.png><link rel=mask-icon href=https://bai-yunhan.github.io/safari-pinned-tab.svg><meta name=theme-color content="#2e2e33"><meta name=msapplication-TileColor content="#2e2e33"><link rel=alternate hreflang=en href=https://bai-yunhan.github.io/posts/flow-matching-section-3-constructing-training-loss/><noscript><style>#theme-toggle,.top-link{display:none}</style><style>@media(prefers-color-scheme:dark){:root{--theme:rgb(29, 30, 32);--entry:rgb(46, 46, 51);--primary:rgb(218, 218, 219);--secondary:rgb(155, 156, 157);--tertiary:rgb(65, 66, 68);--content:rgb(196, 196, 197);--code-block-bg:rgb(46, 46, 51);--code-bg:rgb(55, 56, 62);--border:rgb(51, 51, 51);color-scheme:dark}.list{background:var(--theme)}.toc{background:var(--entry)}}@media(prefers-color-scheme:light){.list::-webkit-scrollbar-thumb{border-color:var(--code-bg)}}</style></noscript><script>localStorage.getItem("pref-theme")==="dark"?document.querySelector("html").dataset.theme="dark":localStorage.getItem("pref-theme")==="light"?document.querySelector("html").dataset.theme="light":window.matchMedia("(prefers-color-scheme: dark)").matches?document.querySelector("html").dataset.theme="dark":document.querySelector("html").dataset.theme="light"</script><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js></script><script>document.addEventListener("DOMContentLoaded",function(){renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"\\(",right:"\\)",display:!1},{left:"$",right:"$",display:!1}]})})</script><script async src="https://www.googletagmanager.com/gtag/js?id=G-J4WQ95SS8J"></script><script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-J4WQ95SS8J")</script><meta property="og:url" content="https://bai-yunhan.github.io/posts/flow-matching-section-3-constructing-training-loss/"><meta property="og:site_name" content="Yechao's Blog"><meta property="og:title" content="Introduction to Flow Matching Model, Part 3 of 3: Constructing the Training Loss"><meta property="og:description" content="Constructing the Training Loss Section 1 framed generative modeling as sampling through transformation: start from a simple distribution and transport samples toward the data distribution by integrating an ODE. In that picture, the learned vector field is the local motion rule, and the induced flow is the global transformation that turns noise into data.
-Section 2 then showed how to construct the relevant target vector field. By introducing conditional and marginal probability paths, we obtained a closed-form expression for the tractable conditional vector field $u_t^{\text{target}}(x \mid z)$ and saw, via the marginalization trick, how these conditional fields assemble into the marginal vector field $u_t^{\text{target}}(x)$ that actually governs the distribution-level transport."><meta property="og:locale" content="en-us"><meta property="og:type" content="article"><meta property="article:section" content="posts"><meta property="article:published_time" content="2026-04-12T00:00:00+00:00"><meta property="article:modified_time" content="2026-04-12T00:00:00+00:00"><meta property="article:tag" content="Generative"><meta name=twitter:card content="summary"><meta name=twitter:title content="Introduction to Flow Matching Model, Part 3 of 3: Constructing the Training Loss"><meta name=twitter:description content="Constructing the Training Loss
-Section 1 framed generative modeling as sampling through transformation: start from a simple distribution and transport samples toward the data distribution by integrating an ODE. In that picture, the learned vector field is the local motion rule, and the induced flow is the global transformation that turns noise into data.
-Section 2 then showed how to construct the relevant target vector field. By introducing conditional and marginal probability paths, we obtained a closed-form expression for the tractable conditional vector field $u_t^{\text{target}}(x \mid z)$ and saw, via the marginalization trick, how these conditional fields assemble into the marginal vector field $u_t^{\text{target}}(x)$ that actually governs the distribution-level transport."><script type=application/ld+json>{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Posts","item":"https://bai-yunhan.github.io/posts/"},{"@type":"ListItem","position":2,"name":"Introduction to Flow Matching Model, Part 3 of 3: Constructing the Training Loss","item":"https://bai-yunhan.github.io/posts/flow-matching-section-3-constructing-training-loss/"}]}</script><script type=application/ld+json>{"@context":"https://schema.org","@type":"BlogPosting","headline":"Introduction to Flow Matching Model, Part 3 of 3: Constructing the Training Loss","name":"Introduction to Flow Matching Model, Part 3 of 3: Constructing the Training Loss","description":"Constructing the Training Loss Section 1 framed generative modeling as sampling through transformation: start from a simple distribution and transport samples toward the data distribution by integrating an ODE. In that picture, the learned vector field is the local motion rule, and the induced flow is the global transformation that turns noise into data.\nSection 2 then showed how to construct the relevant target vector field. By introducing conditional and marginal probability paths, we obtained a closed-form expression for the tractable conditional vector field $u_t^{\\text{target}}(x \\mid z)$ and saw, via the marginalization trick, how these conditional fields assemble into the marginal vector field $u_t^{\\text{target}}(x)$ that actually governs the distribution-level transport.\n","keywords":["generative"],"articleBody":"Constructing the Training Loss Section 1 framed generative modeling as sampling through transformation: start from a simple distribution and transport samples toward the data distribution by integrating an ODE. In that picture, the learned vector field is the local motion rule, and the induced flow is the global transformation that turns noise into data.\nSection 2 then showed how to construct the relevant target vector field. By introducing conditional and marginal probability paths, we obtained a closed-form expression for the tractable conditional vector field $u_t^{\\text{target}}(x \\mid z)$ and saw, via the marginalization trick, how these conditional fields assemble into the marginal vector field $u_t^{\\text{target}}(x)$ that actually governs the distribution-level transport.\nThis leaves the next question: even if we know which vector field we want in principle, how do we train a neural network to learn it in practice? That is the problem of this section.\nThe Problem As we learned, we want the neural network $u_t^\\theta$ to approximate the marginal vector field $u_t^{\\text{target}}$. A natural way to achieve this is to use a mean-squared-error objective, namely the flow matching loss defined as\nHere, $\\text{Unif} = \\text{Unif}_{[0,1]}$ denotes the uniform distribution on $[0,1]$, and $\\mathbb{E}$ denotes expectation.\n$$\\mathcal{L}_{\\text{FM}}(\\theta) = \\mathbb{E}_{t \\sim \\text{Unif}, x \\sim p_t}[\\|u_t^\\theta(x) - u_t^{\\text{target}}(x)\\|^2] \\tag{1}$$$$\\overset{(i)}{=} \\mathbb{E}_{t \\sim \\text{Unif}, z \\sim p_{\\text{data}}, x \\sim p_t(\\cdot|z)}[\\|u_t^\\theta(x) - u_t^{\\text{target}}(x)\\|^2]$$where $p_t(x) = \\int p_t(x|z) p_{\\text{data}}(z) \\mathrm{d}z$ is the marginal probability path and in $(i)$ we used the following sampling from marginal path procedure: $$ z \\sim p_{\\text{data}}, \\qquad x \\sim p_t(\\cdot \\mid z) \\qquad \\Longrightarrow \\qquad x \\sim p_t. $$ Intuitively, this loss says: First, draw a random time $t \\in [0,1]$. Second, draw a random point $z$ from our data set, sample $x \\sim p_t(\\cdot|z)$ (e.g., by adding some noise), and compute $u_t^\\theta(x)$. Finally, compute the mean-squared error between the output of our neural network and the marginal vector field $u_t^{\\text{target}}(x)$. However, we are still not done. Although Theorem 10 in [1] gives the marginalization-trick formula for $u_t^{\\text{target}}$,\n$$u_t^{\\text{target}}(x) = \\int u_t^{\\text{target}}(x|z) \\frac{p_t(x|z) p_{\\text{data}}(z)}{p_t(x)} \\mathrm{d}z, \\tag{2}$$we cannot compute it efficiently because the above integral is intractable. Instead, we will exploit the fact that the conditional velocity field $u_t^{\\text{target}}(x|z)$ is tractable. This leads to the conditional flow matching loss\n$$\\mathcal{L}_{\\text{CFM}}(\\theta) = \\mathbb{E}_{t \\sim \\text{Unif}, z \\sim p_{\\text{data}}, x \\sim p_t(\\cdot|z)}[\\|u_t^\\theta(x) - u_t^{\\text{target}}(x|z)\\|^2]$$Note the difference to $\\mathcal{L}_{\\text{FM}}(\\theta)$ in eq. (1): we use the conditional vector field $u_t^{\\text{target}}(x|z)$ instead of the marginal vector field $u_t^{\\text{target}}(x)$. As we have an analytical formula for $u_t^{\\text{target}}(x|z)$, we can minimize the above loss easily.\nBut wait, what sense does it make to regress against the conditional vector field if it’s the marginal vector field we care about? As it turns out, by explicitly regressing against the tractable, conditional vector field, we are implicitly regressing against the intractable, marginal vector field. The next result makes this intuition precise.\nFigure 1. Comparison of Learned Marginal Probability Path and Ground Truth. Panel 1 (Trajectories of Learned Marginal ODE): We use the learned marginal vector field $u_t^\\theta$ to plot the trajectory using ODE simulation. Starting from initial samples $x_0 \\sim p_{\\text{simple}}$, we integrate the learned vector field over time using an ODE solver (e.g., Euler method). Panel 2 (Samples from Learned Marginal ODE): The samples are generated using the trajectory by extracting the points along the simulated ODE trajectories from Panel 1 at specific time steps $t$. Note that the samples appear denser here than the trajectories in Panel 1 because only a limited number of trajectories are drawn in Panel 1 for cleaner visualization. Panel 3 (Ground-Truth Marginal Probability Path): Even though we cannot compute the marginal density $p_t(x)$ directly because the integral is intractable, we can still get the ground truth sample using the marginalization trick: $$ z \\sim p_{\\text{data}}, \\qquad x \\sim p_t(\\cdot \\mid z) \\quad \\Longrightarrow \\quad x \\sim p_t. $$ In the implementation [2], this is done by sampling a target data point $z$ and then sampling $x$ from the conditional distribution $p_t(\\cdot|z)$. Because we use a Gaussian conditional probability path, $x \\sim p_t(\\cdot|z)$ is easily computable as $x = \\alpha_t z + \\beta_t \\epsilon$ where $\\epsilon \\sim \\mathcal{N}(0, I)$. Equivalence of CFM and FM Objectives: Algebraic Proof As we can see, the samples from the learned marginal ODE visually match the ground-truth probability path. This suggests that, although we train against the tractable conditional vector field $u_t^{\\text{target}}(x|z)$, the learned model still recovers the marginal behavior governed by $u_t^{\\text{target}}(x)$.\nTheorem 18. The marginal flow matching loss equals the conditional flow matching loss up to a constant. That is,\n$$ \u003e \\mathcal{L}_{\\text{FM}}(\\theta) = \\mathcal{L}_{\\text{CFM}}(\\theta) + C, \u003e $$where $C$ is independent of $\\theta$. Therefore, their gradients coincide:\n$$ \u003e \\nabla_\\theta \\mathcal{L}_{\\text{FM}}(\\theta) = \\nabla_\\theta \\mathcal{L}_{\\text{CFM}}(\\theta). \u003e $$Hence, minimizing $\\mathcal{L}_{\\text{CFM}}(\\theta)$ with stochastic gradient descent (SGD) is equivalent to minimizing $\\mathcal{L}_{\\text{FM}}(\\theta)$ in the same fashion. In particular, for the minimizer $\\theta^*$ of $\\mathcal{L}_{\\text{CFM}}(\\theta)$, it will hold that $u_t^{\\theta^*} = u_t^{\\text{target}}$ (assuming an infinitely expressive parameterization). [1]\nProof. The proof works by expanding the mean-squared error into three components and removing constants. [1]\n$$ \\begin{aligned} \\mathcal{L}{\\text{FM}}(\\theta) \u0026\\overset{(i)}{=} \\mathbb{E}{t \\sim \\text{Unif}, x \\sim p_t} \\left[\\left|u_t^\\theta(x) - u_t^{\\text{target}}(x)\\right|^2\\right] \\ \u0026\\overset{(ii)}{=} \\mathbb{E}{t \\sim \\text{Unif}, x \\sim p_t} \\left[\\left|u_t^\\theta(x)\\right|^2 - 2,u_t^\\theta(x)^\\top u_t^{\\text{target}}(x) + \\left|u_t^{\\text{target}}(x)\\right|^2\\right] \\ \u0026\\overset{(iii)}{=} \\mathbb{E}{t \\sim \\text{Unif}, x \\sim p_t}\\left[\\left|u_t^\\theta(x)\\right|^2\\right]\n2\\mathbb{E}_{t \\sim \\text{Unif}, x \\sim p_t}\\left[u_t^\\theta(x)^\\top u_t^{\\text{target}}(x)\\right] \\underbrace{\\mathbb{E}{t \\sim \\text{Unif}{[0,1]}, x \\sim p_t}\\left[\\left|u_t^{\\text{target}}(x)\\right|^2\\right]}{=:C_1} \\ \u0026\\overset{(iv)}{=} \\mathbb{E}{t \\sim \\text{Unif}, z \\sim p_{\\text{data}}, x \\sim p_t(\\cdot|z)} \\left[\\left|u_t^\\theta(x)\\right|^2\\right] 2,{\\color{green}\\boxed{\\color{white}{\\mathbb{E}_{t \\sim \\text{Unif}, x \\sim p_t}\\left[u_t^\\theta(x)^\\top u_t^{\\text{target}}(x)\\right]}}} + C_1 \\end{aligned} $$ where $(i)$ holds by definition, in $(ii)$ we used the formula\n$$ \\|a-b\\|^2 = \\|a\\|^2 - 2a^\\top b + \\|b\\|^2, $$in $(iii)$ we define a constant $C_1$, and in $(iv)$ we used the sampling procedure of $p_t$ given by eq. $(13)$.\n$$\\underbrace{\\mathbb{E}_{t \\sim \\text{Unif}_{[0,1]}, x \\sim p_t}\\left[\\left\\| u_t^{\\text{target}}(x) \\right\\|^2\\right]}_{=: C_1}$$ In (iii), the reason the last part is a constant is that it does not depend on the model parameters $\\theta$, while the first two terms involve $u_t^{\\theta}(x)$.\nLet us reexpress the second summand:\n$$ \\begin{aligned} {\\color{green}\\boxed{{\\color{white}\\mathbb{E}_{{\\color{orange}t \\sim \\text{Unif}, x \\sim p_t}}\\left[u_t^\\theta(x)^\\top\\right]}}} \\color{pink}{u_t^{\\text{target}}(x)} \u0026\\overset{(i)}{=} \\int_0^1 \\int p_t(x)\\, u_t^\\theta(x)^\\top u_t^{\\text{target}}(x)\\,\\mathrm{d}x\\,\\mathrm{d}t \\\\ \u0026\\overset{(ii)}{=} \\int_0^1 \\int \\cancel{p_t(x)}\\, u_t^\\theta(x) {\\color{red}\\boxed{{\\color{white}\\left[\\int u_t^{\\text{target}}(x|z)\\frac{p_t(x|z)p_{\\text{data}}(z)}{\\cancel{p_t(x)}}\\,\\mathrm{d}z\\right]}}} \\,\\mathrm{d}x\\,\\mathrm{d}t \\\\ \u0026\\overset{(iii)}{=} \\int_0^1 \\int \\int u_t^\\theta(x)^\\top u_t^{\\text{target}}(x|z)\\, p_t(x|z)\\, p_{\\text{data}}(z)\\,\\mathrm{d}z\\,\\mathrm{d}x\\,\\mathrm{d}t \\\\ \u0026\\overset{(iv)}{=} \\mathbb{E}_{\\color{orange}{t \\sim \\text{Unif}, z \\sim p_{\\text{data}}}, x \\sim p_t(\\cdot|z)} \\left[ u_t^\\theta(x)^\\top \\color{pink}{u_t^{\\text{target}}(x|z)} \\right] \\end{aligned} $$where in $(i)$ we expressed the expected value as an integral, in $(ii)$ we use eq. $(2)$, in $(iii)$ we use the fact that integrals are linear, and in $(iv)$ we express the integral as an expected value.\nNote that this was really the crucial step of the proof:\nThe beginning of the equality used the marginal vector field $u^{\\text{target}}_t(x)$, while the end uses the conditional vector field $u^{\\text{target}}_t(x|z)$.\nRegarding (iii), it says integral is linear, let's get to the definition of linearity. For an operator $T$, it is **linear** if for any functions $f, g$ and scalars $a, b$, $$ T(af + bg) = aT(f) + bT(g). $$ This combines two properties:\nAdditivity: $T(f + g) = T(f) + T(g)$ Homogeneity: $T(af) = aT(f)$ We plug is into the equation for L FMto get:\n$$ \\begin{aligned} \\mathcal{L}{\\text{FM}}(\\theta) \u0026\\overset{(i)}{=} \\mathbb{E}{t \\sim \\text{Unif}, z \\sim p_{\\text{data}}, x \\sim p_t(\\cdot|z)} \\left[\\left|u_t^\\theta(x)\\right|^2\\right]\n2\\mathbb{E}{t \\sim \\text{Unif}, z \\sim p{\\text{data}}, x \\sim p_t(\\cdot|z)} \\left[u_t^\\theta(x)^\\top u_t^{\\text{target}}(x|z)\\right] C_1 \\ \u0026\\overset{(ii)}{=} \\mathbb{E}{t \\sim \\text{Unif}, z \\sim p{\\text{data}}, x \\sim p_t(\\cdot|z)} \\left[ \\left|u_t^\\theta(x)\\right|^2 2u_t^\\theta(x)^\\top u_t^{\\text{target}}(x|z) {\\color{cyan}+ \\left|u_t^{\\text{target}}(x|z)\\right|^2} {\\color{red}- \\left|u_t^{\\text{target}}(x|z)\\right|^2} \\right] C_1 \\ \u0026\\overset{(iii)}{=} \\mathbb{E}{t \\sim \\text{Unif}, z \\sim p{\\text{data}}, x \\sim p_t(\\cdot|z)} \\left[\\left|u_t^\\theta(x) - u_t^{\\text{target}}(x|z)\\right|^2\\right] \\underbrace{\\mathbb{E}{t \\sim \\text{Unif}, z \\sim p{\\text{data}}, x \\sim p_t(\\cdot|z)} \\left[-\\left|u_t^{\\text{target}}(x|z)\\right|^2\\right]}_{C_2} C_1 \\ \u0026\\overset{(iv)}{=} \\mathcal{L}{\\text{CFM}}(\\theta) + \\underbrace{C_2 + C_1}{=:C}. \\end{aligned} $$ where in $(i)$ we plugged in the derived equation, in $(ii)$ we added and subtracted the same value, in $(iii)$ we used the formula $\\|a-b\\|^2 = \\|a\\|^2 - 2a^\\top b + \\|b\\|^2$ again, and in $(iv)$ we defined a constant in $\\theta$. This finishes the proof.\nOnce $u_t^\\theta$ has been trained, we may simulate the flow model\n$$ \\mathrm{d}X_t = u_t^\\theta(X_t)\\,\\mathrm{d}t, \\qquad X_0 \\sim p_{\\text{init}} $$via, e.g., algorithm 1 to obtain samples $X_1 \\sim p_{\\text{data}}$. Let us now instantiate the conditional flow matching loss for the choice of Gaussian probability paths:\nWhy Conditional Training Recovers the Marginal Field: Visual View The Apparent Contradiction Training minimizes the CFM loss: $$\\mathcal{L}_{\\text{CFM}}(\\theta) = \\mathbb{E}_{t,\\, z \\sim p_{\\text{data}},\\, x \\sim p_t(x|z)} \\left[\\| u_t^\\theta(x, t) - u_t^{\\text{target}}(x|z) \\|^2 \\right]$$Each training sample provides a conditional target $u_t(x|z)$ — yet the trained model learns the marginal vector field $u_t(x) = \\mathbb{E}_{z \\sim p(z|x,t)}[u_t(x|z)]$. Why?\nTraining Data Sparsity and the Contradiction Made Visible The following visualization calls visualize_relevant_training_data, which zooms into the neighbourhood of the query point $x^*$ at the optimal time $t^*$ and displays only the training samples within a small spatial and time window. The plot simultaneously reveals two things:\n1. Training data sparsity. Only a handful of points (here, $n=39$) land near any specific $(x, t)$ location. Many fall outside the bounding box entirely. Despite this, the model converges to the correct marginal vector field because neural network generalization covers the $(x, t)$ input space smoothly.\n2. The contradiction made visible. Each colour-coded arrow is the conditional target $u_t(x_i | z_i)$ for a nearby training sample, coloured by $\\log p_t(x_i | z_i)$ (plasma colormap: bright yellow = high likelihood, dark purple = low). Because each $z_i$ is different, the arrows scatter in conflicting directions — even though the inputs $(x_i, t_i)$ are nearly identical. This is the contradiction: the model receives a single input $(x, t)$ but is asked to match many different targets simultaneously. The orange arrow — the learned $u_t^\\theta(x^*)$ — is a posterior average of conditional vector field as proved by last visualization. This is not a coincidence: since $z$ is never passed to the model, the L2 loss has no other choice but to pull $u_t^\\theta(x, t)$ toward $\\mathbb{E}_{z \\sim p(z|x,t)}[u_t(x|z)]$, which is exactly the marginal vector field $u_t^{\\text{target}}(x)$.\nFigure 2. Visualization of training data. Figure 3. Visualization of relevant training data. The Key: $z$ is Hidden from the Model The model signature is $u_t^\\theta(x, t)$ — it takes only $(x, t)$ as input, never $z$.\nDuring training, $z$ appears in the data only to compute the supervision target $u_t(x|z)$; it is discarded and never passed to the network. This creates a fundamental information bottleneck.\nQuantity Available to the model during training Available at inference $x$ Yes (input) Yes (input) $t$ Yes (input) Yes (input) $z$ No — used only to compute target, then discarded No $u_t(x\\|z)$ Yes — as the loss target No Why Hidden $z$ Forces the Model to Learn the Marginal - “Visual” For any fixed input $(x, t)$, many different $z$’s are compatible with that $x$ at that time (because $\\beta_t \u003e 0$ at intermediate times, so the Gaussian clouds overlap). The model must emit a single output vector for all those different $z$’s, but the training targets $u_t(x|z_1), u_t(x|z_2), \\ldots$ all point in different directions.\nThis is a standard regression problem with a hidden variable. The fundamental result is:\nThe minimizer of $\\mathbb{E}[(y - c)^2]$ over a constant $c$ (one that cannot depend on the hidden variable) is $c^* = \\mathbb{E}[y]$.\nHere $y = u_t(x|z)$ and $c = u_t^\\theta(x, t)$ is constant with respect to $z$. So the L2-optimal prediction is: $$u_t^{\\theta*}(x, t) = \\mathbb{E}_{z \\sim p(z|x,t)}\\left[ u_t(x|z) \\right] = u_t^{\\text{target}}(x)$$The model cannot “pick a side” when it cannot see which $z$ generated the sample. The averaging is a direct consequence of the L2 loss geometry combined with the hidden $z$.\nConnection to Theorem 18 (Algebraic View) Theorem 18 arrives at the same conclusion by expanding the CFM loss: $$\\|u_t^\\theta - u_t(x|z)\\|^2 = \\|u_t^\\theta - u_t(x)\\|^2 + 2(u_t^\\theta - u_t(x))\\cdot\\underbrace{(u_t(x) - u_t(x|z))}_{\\text{zero mean over } z|x,t} + \\underbrace{\\|u_t(x) - u_t(x|z)\\|^2}_{\\text{constant in } \\theta}$$Taking $\\mathbb{E}_{z \\sim p(z|x,t)}[\\cdot]$: the cross-term vanishes because $\\mathbb{E}[u_t(x|z) \\mid x,t] = u_t(x)$, and the last term is independent of $\\theta$. Therefore $\\nabla_\\theta \\mathcal{L}_{\\text{CFM}} = \\nabla_\\theta \\mathcal{L}_{\\text{FM}}$ — same gradients, same minimizer.\nThe two perspectives are two sides of the same coin:\nRegression view: hidden $z$ + L2 loss → forced averaging → learns marginal. Algebraic view (Theorem 18): cross-term vanishes in expectation → $\\mathcal{L}_{\\text{CFM}}$ and $\\mathcal{L}_{\\text{FM}}$ share the same minimizer. Why Sparse Training Data is Sufficient The two effects play distinct roles:\nEffect What space is covered What it explains Hidden $z$ + L2 averaging Coverage of $z$’s at a fixed $(x,t)$ What the model converges to: the marginal $u_t(x)$ Neural network generalization Coverage of the $(x,t)$ input space How efficiently training reaches that target from finite data Even though the training set is a finite sample, the MLP generalizes smoothly across $(x,t)$ space, so optimizing the loss on sampled mini-batches still drives $u_t^\\theta$ toward the true minimizer everywhere. Generalization is a prerequisite — it ensures sensible outputs across all of $(x,t)$ — but it does not explain why those outputs are specifically the posterior average of conditional vector fields. That is entirely due to the hidden $z$ mechanism.\nFlow Matching Loss for Gaussian Conditional Probability Paths Let us return to the example of Gaussian probability paths $$ p_t(\\cdot|z) = \\mathcal{N}(\\alpha_t z; \\beta_t^2 I_d), $$ where we may sample from the conditional path via [1] $$ \\epsilon \\sim \\mathcal{N}(0, I_d) \\qquad \\Longrightarrow \\qquad x_t = \\alpha_t z + \\beta_t \\epsilon \\sim \\mathcal{N}(\\alpha_t z, \\beta_t^2 I_d) = p_t(\\cdot|z). \\tag{3} $$As we derived in eq. $(21)$, the conditional vector field $u_t^{\\text{target}}(x|z)$ is given by $$ u_t^{\\text{target}}(x|z) \\left(\\dot{\\alpha}_t - \\frac{\\dot{\\beta}_t}{\\beta_t}\\alpha_t\\right)z\n\\frac{\\dot{\\beta}t}{\\beta_t}x, $$ where $\\dot{\\alpha}_t = \\partial_t \\alpha_t$ and $\\dot{\\beta}_t = \\partial_t \\beta_t$ are the respective time derivatives. Plugging in this formula, the conditional flow matching loss reads $$ \\mathcal{L}{\\text{CFM}}(\\theta) = \\mathbb{E}{t \\sim \\text{Unif}, z \\sim p{\\text{data}}, x \\sim \\mathcal{N}(\\alpha_t z, \\beta_t^2 I_d)} \\left[ \\left|u_t^\\theta(x) - \\left( \\left(\\dot{\\alpha}_t - \\frac{\\dot{\\beta}_t}{\\beta_t}\\alpha_t\\right)z \\frac{\\dot{\\beta}t}{\\beta_t}x \\right)\\right|^2 \\right] $$ $$ \\overset{(i)}{=} \\mathbb{E}{t \\sim \\text{Unif}, z \\sim p_{\\text{data}}, \\epsilon \\sim \\mathcal{N}(0, I_d)} \\left[ \\left|u_t^\\theta(\\alpha_t z + \\beta_t \\epsilon) - (\\dot{\\alpha}_t z + \\dot{\\beta}_t \\epsilon)\\right|^2 \\right], $$ where in $(i)$ we plugged in eq. $(3)$ and replaced $x$ by $\\alpha_t z + \\beta_t \\epsilon$. Note the simplicity of $\\mathcal{L}_{\\text{CFM}}$: we sample a data point $z$, sample some noise $\\epsilon$, and then take a mean squared error. Let us make this even more concrete for the special case of $\\alpha_t = t$ and $\\beta_t = 1 - t$. The corresponding probability path $$ p_t(x|z) = \\mathcal{N}(tz, (1-t)^2) $$ is sometimes referred to as the (Gaussian) CondOT probability path. Then we have $\\dot{\\alpha}_t = 1$ and $\\dot{\\beta}_t = -1$, so that $$ \\mathcal{L}_{\\text{cfm}}(\\theta) \\mathbb{E}{t \\sim \\text{Unif}, z \\sim p{\\text{data}}, \\epsilon \\sim \\mathcal{N}(0, I_d)} \\left[ \\left|u_t^\\theta({\\color{orange}tz + (1-t)\\epsilon}) - (z - \\epsilon)\\right|^2 \\right]. $$\nMany famous state-of-the-art models have been trained using this simple yet effective procedure, e.g. Stable Diffusion 3, Meta’s Movie Gen Video, and probably many more proprietary models. In fig. 9, we visualize it in a simple example and in algorithm 3 we summarize the training procedure. [1]\n$$ \\boxed{ \\begin{aligned} \u0026 \\textbf{Algorithm 3 } \\text{Flow Matching Training Procedure (here for Gaussian CondOT path } p_t(x|z) = \\mathcal{N}(tz,(1-t)^2)\\text{)} \\\\ \u0026 \\textbf{Require: } \\text{A dataset of samples } z \\sim p_{\\text{data}}, \\text{ neural network } u_t^\\theta. \\\\[4pt] \u0026 1: \\; \\textbf{for } \\text{each mini-batch of data } \\textbf{do} \\\\ \u0026 2: \\quad \\text{Sample a data example } z \\text{ from the dataset.} \\\\ \u0026 3: \\quad \\text{Sample a random time } t \\sim \\text{Unif}_{[0,1]}. \\\\ \u0026 4: \\quad \\text{Sample noise } \\epsilon \\sim \\mathcal{N}(0, I_d). \\\\ \u0026 5: \\quad \\text{Set } x = {\\color{orange}tz + (1-t)\\epsilon}. \\hspace{2em} \\text{(General case: } x \\sim p_t(\\cdot|z)\\text{)} \\\\ \u0026 6: \\quad \\text{Compute loss} \\\\ \u0026 \\qquad \\mathcal{L}(\\theta) = \\left\\|u_t^\\theta(x) - (z - \\epsilon)\\right\\|^2 \\hspace{2em} \\text{(General case: } \\left\\|u_t^\\theta(x) - u_t^{\\text{target}}(x|z)\\right\\|^2\\text{)} \\\\ \u0026 7: \\quad \\text{Update the model parameters } \\theta \\text{ via gradient descent on } \\mathcal{L}(\\theta). \\\\ \u0026 8: \\; \\textbf{end for} \\end{aligned} } $$Intuition Behind the Flow Matching Loss The flow matching loss is given by $$ \\mathcal{L}(\\theta) = \\left\\|u_t^{\\theta}(x) - (z - \\epsilon)\\right\\|^2, \\quad \\text{where} \\; x = t z + (1-t)\\epsilon $$For the (Gaussian) CondOT path, once both $z$ and $\\epsilon$ are fixed, the trajectory $$ x_t = t z + (1-t)\\epsilon $$ is a straight line, so its velocity is the constant vector $$ \\frac{d x_t}{dt} = z-\\epsilon. $$ Accordingly, the loss trains $u_t^\\theta(x)$ to match the full target velocity $z-\\epsilon$, including both its direction and its magnitude. Importantly, this target velocity is determined jointly by $z$ and $\\epsilon$: changing $\\epsilon$ changes the straight-line path, and therefore changes the velocity as well.\nFigure 4. Linear beta schedule: $\\alpha_t = t$ and $\\beta_t = 1-t$. For fixed $z$ and $\\epsilon$, the conditional trajectory $x_t = tz + (1-t)\\epsilon$ is a straight line with constant velocity $z-\\epsilon$, so the flow matching objective trains $u_t^\\theta(x)$ to recover this full target velocity, including both direction and magnitude. References [1] Peter Holderrieth and Ezra Erives. Introduction to Flow Matching and Diffusion Models. 2025. https://diffusion.csail.mit.edu/\n[2] Bai-YunHan. Flow-matching-and-Diffusion-Model-Fundamentals. GitHub repository. https://github.com/Bai-YunHan/Flow-matching-and-Diffusion-Model-Fundamentals\n","wordCount":"2792","inLanguage":"en","datePublished":"2026-04-12T00:00:00Z","dateModified":"2026-04-12T00:00:00Z","mainEntityOfPage":{"@type":"WebPage","@id":"https://bai-yunhan.github.io/posts/flow-matching-section-3-constructing-training-loss/"},"publisher":{"@type":"Organization","name":"Yechao's Blog","logo":{"@type":"ImageObject","url":"https://bai-yunhan.github.io/favicon.ico"}}}</script></head><body id=top><header class=header><nav class=nav><div class=logo><a href=https://bai-yunhan.github.io/ accesskey=h title="Yechao's Blog (Alt + H)">Yechao's Blog</a><div class=logo-switches><button id=theme-toggle accesskey=t title="(Alt + T)" aria-label="Toggle theme">
-<svg id="moon" width="24" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
-<svg id="sun" width="24" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></button></div></div><ul id=menu><li><a href=https://bai-yunhan.github.io/ title=Posts><span>Posts</span></a></li><li><a href=https://bai-yunhan.github.io/archives/ title=Archive><span>Archive</span></a></li><li><a href=https://bai-yunhan.github.io/search/ title="Search (Alt + /)" accesskey=/><span>Search</span></a></li><li><a href=https://bai-yunhan.github.io/tags/ title=Tags><span>Tags</span></a></li></ul></nav></header><main class=main><article class=post-single><header class=post-header><h1 class="post-title entry-hint-parent">Introduction to Flow Matching Model, Part 3 of 3: Constructing the Training Loss</h1><div class=post-meta><span title='2026-04-12 00:00:00 +0000 UTC'>April 12, 2026</span>&nbsp;·&nbsp;<span>14 min</span></div></header><div class=toc><details open><summary accesskey=c title="(Alt + C)"><span class=details>Table of Contents</span></summary><div class=inner><ul><li><a href=#constructing-the-training-loss aria-label="Constructing the Training Loss">Constructing the Training Loss</a></li><li><a href=#the-problem aria-label="The Problem">The Problem</a></li><li><a href=#equivalence-of-cfm-and-fm-objectives-algebraic-proof aria-label="Equivalence of CFM and FM Objectives: Algebraic Proof">Equivalence of CFM and FM Objectives: Algebraic Proof</a></li><li><a href=#why-conditional-training-recovers-the-marginal-field-visual-view aria-label="Why Conditional Training Recovers the Marginal Field: Visual View">Why Conditional Training Recovers the Marginal Field: Visual View</a><ul><li><a href=#the-apparent-contradiction aria-label="The Apparent Contradiction">The Apparent Contradiction</a></li><li><a href=#training-data-sparsity-and-the-contradiction-made-visible aria-label="Training Data Sparsity and the Contradiction Made Visible">Training Data Sparsity and the Contradiction Made Visible</a></li><li><a href=#the-key--is-hidden-from-the-model aria-label="The Key: $z$ is Hidden from the Model">The Key: $z$ is Hidden from the Model</a></li><li><a href=#why-hidden--forces-the-model-to-learn-the-marginal---visual aria-label="Why Hidden $z$ Forces the Model to Learn the Marginal - &ldquo;Visual&rdquo;">Why Hidden $z$ Forces the Model to Learn the Marginal - &ldquo;Visual&rdquo;</a></li><li><a href=#connection-to-theorem-18-algebraic-view aria-label="Connection to Theorem 18 (Algebraic View)">Connection to Theorem 18 (Algebraic View)</a></li><li><a href=#why-sparse-training-data-is-sufficient aria-label="Why Sparse Training Data is Sufficient">Why Sparse Training Data is Sufficient</a></li></ul></li><li><a href=#flow-matching-loss-for-gaussian-conditional-probability-paths aria-label="Flow Matching Loss for Gaussian Conditional Probability Paths">Flow Matching Loss for Gaussian Conditional Probability Paths</a><ul><li><a href=#intuition-behind-the-flow-matching-loss aria-label="Intuition Behind the Flow Matching Loss">Intuition Behind the Flow Matching Loss</a></li></ul></li><li><a href=#references aria-label=References>References</a></li></ul></div></details></div><div class=post-content><h1 id=constructing-the-training-loss>Constructing the Training Loss<a hidden class=anchor aria-hidden=true href=#constructing-the-training-loss>#</a></h1><p>Section 1 framed generative modeling as sampling through transformation: start from a simple distribution and transport samples toward the data distribution by integrating an ODE. In that picture, the learned vector field is the local motion rule, and the induced flow is the global transformation that turns noise into data.</p><p>Section 2 then showed how to construct the relevant target vector field. By introducing conditional and marginal probability paths, we obtained a closed-form expression for the tractable conditional vector field $u_t^{\text{target}}(x \mid z)$ and saw, via the marginalization trick, how these conditional fields assemble into the marginal vector field $u_t^{\text{target}}(x)$ that actually governs the distribution-level transport.</p><p>This leaves the next question: even if we know which vector field we want in principle, how do we train a neural network to learn it in practice? That is the problem of this section.</p><h1 id=the-problem>The Problem<a hidden class=anchor aria-hidden=true href=#the-problem>#</a></h1><p>As we learned, we want the neural network $u_t^\theta$ to approximate the marginal vector field $u_t^{\text{target}}$. A natural way to achieve this is to use a mean-squared-error objective, namely the <strong>flow matching loss</strong> defined as</p><p>Here, $\text{Unif} = \text{Unif}_{[0,1]}$ denotes the uniform distribution on $[0,1]$, and $\mathbb{E}$ denotes expectation.</p>$$\mathcal{L}_{\text{FM}}(\theta) = \mathbb{E}_{t \sim \text{Unif}, x \sim p_t}[\|u_t^\theta(x) - u_t^{\text{target}}(x)\|^2] \tag{1}$$$$\overset{(i)}{=} \mathbb{E}_{t \sim \text{Unif}, z \sim p_{\text{data}}, x \sim p_t(\cdot|z)}[\|u_t^\theta(x) - u_t^{\text{target}}(x)\|^2]$$<p>where $p_t(x) = \int p_t(x|z) p_{\text{data}}(z) \mathrm{d}z$ is the marginal probability path and in $(i)$ we used the following <strong>sampling from marginal path</strong> procedure:</p>$$
+<!DOCTYPE html>
+<html lang="en" dir="auto" data-theme="auto">
+
+<head><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="index, follow">
+<title>Introduction to Flow Matching Model, Part 3 of 3: Constructing the Training Loss | Yechao&#39;s Blog</title>
+<meta name="keywords" content="generative">
+<meta name="description" content="Why training on the conditional vector field recovers the marginal vector field. Derives the conditional flow matching (CFM) loss, proves its equivalence to the flow matching loss, and explains the hidden-variable averaging mechanism.">
+<meta name="author" content="">
+<link rel="canonical" href="https://bai-yunhan.github.io/posts/flow-matching-section-3-constructing-training-loss/">
+<meta name="google-site-verification" content="RskRZT3ZM_y-1j7BGujVZvbmoifgau1iF8jqSskz5a4">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.343cc480b9ffc8f04ccbe5e968ad674880cab773ec19905e93033065c1e7a804.css" integrity="sha256-NDzEgLn/yPBMy&#43;XpaK1nSIDKt3PsGZBekwMwZcHnqAQ=" rel="preload stylesheet" as="style">
+<link rel="icon" href="https://bai-yunhan.github.io/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="https://bai-yunhan.github.io/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="https://bai-yunhan.github.io/favicon-32x32.png">
+<link rel="apple-touch-icon" href="https://bai-yunhan.github.io/apple-touch-icon.png">
+<link rel="mask-icon" href="https://bai-yunhan.github.io/safari-pinned-tab.svg">
+<meta name="theme-color" content="#2e2e33">
+<meta name="msapplication-TileColor" content="#2e2e33">
+<link rel="alternate" hreflang="en" href="https://bai-yunhan.github.io/posts/flow-matching-section-3-constructing-training-loss/">
+<noscript>
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+    <style>
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --theme: rgb(29, 30, 32);
+                --entry: rgb(46, 46, 51);
+                --primary: rgb(218, 218, 219);
+                --secondary: rgb(155, 156, 157);
+                --tertiary: rgb(65, 66, 68);
+                --content: rgb(196, 196, 197);
+                --code-block-bg: rgb(46, 46, 51);
+                --code-bg: rgb(55, 56, 62);
+                --border: rgb(51, 51, 51);
+                color-scheme: dark;
+            }
+
+            .list {
+                background: var(--theme);
+            }
+
+            .toc {
+                background: var(--entry);
+            }
+        }
+
+        @media (prefers-color-scheme: light) {
+            .list::-webkit-scrollbar-thumb {
+                border-color: var(--code-bg);
+            }
+        }
+
+    </style>
+</noscript>
+<script>
+    if (localStorage.getItem("pref-theme") === "dark") {
+        document.querySelector("html").dataset.theme = 'dark';
+    } else if (localStorage.getItem("pref-theme") === "light") {
+       document.querySelector("html").dataset.theme = 'light';
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.querySelector("html").dataset.theme = 'dark';
+    } else {
+        document.querySelector("html").dataset.theme = 'light';
+    }
+
+</script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+      renderMathInElement(document.body, {
+        delimiters: [
+          { left: "$$", right: "$$", display: true },
+          { left: "\\[", right: "\\]", display: true },
+          { left: "\\(", right: "\\)", display: false },
+          { left: "$", right: "$", display: false }
+        ]
+      });
+    });
+    </script>
+
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-J4WQ95SS8J"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-J4WQ95SS8J');
+</script><meta property="og:url" content="https://bai-yunhan.github.io/posts/flow-matching-section-3-constructing-training-loss/">
+  <meta property="og:site_name" content="Yechao&#39;s Blog">
+  <meta property="og:title" content="Introduction to Flow Matching Model, Part 3 of 3: Constructing the Training Loss">
+  <meta property="og:description" content="Why training on the conditional vector field recovers the marginal vector field. Derives the conditional flow matching (CFM) loss, proves its equivalence to the flow matching loss, and explains the hidden-variable averaging mechanism.">
+  <meta property="og:locale" content="en-us">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="posts">
+    <meta property="article:published_time" content="2026-04-12T00:00:00+00:00">
+    <meta property="article:modified_time" content="2026-04-12T00:00:00+00:00">
+    <meta property="article:tag" content="Generative">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Introduction to Flow Matching Model, Part 3 of 3: Constructing the Training Loss">
+<meta name="twitter:description" content="Why training on the conditional vector field recovers the marginal vector field. Derives the conditional flow matching (CFM) loss, proves its equivalence to the flow matching loss, and explains the hidden-variable averaging mechanism.">
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position":  1 ,
+      "name": "Posts",
+      "item": "https://bai-yunhan.github.io/posts/"
+    }, 
+    {
+      "@type": "ListItem",
+      "position":  2 ,
+      "name": "Introduction to Flow Matching Model, Part 3 of 3: Constructing the Training Loss",
+      "item": "https://bai-yunhan.github.io/posts/flow-matching-section-3-constructing-training-loss/"
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "Introduction to Flow Matching Model, Part 3 of 3: Constructing the Training Loss",
+  "name": "Introduction to Flow Matching Model, Part 3 of 3: Constructing the Training Loss",
+  "description": "Why training on the conditional vector field recovers the marginal vector field. Derives the conditional flow matching (CFM) loss, proves its equivalence to the flow matching loss, and explains the hidden-variable averaging mechanism.",
+  "keywords": [
+    "generative"
+  ],
+  "articleBody": "Constructing the Training Loss Section 1 framed generative modeling as sampling through transformation: start from a simple distribution and transport samples toward the data distribution by integrating an ODE. In that picture, the learned vector field is the local motion rule, and the induced flow is the global transformation that turns noise into data.\nSection 2 then showed how to construct the relevant target vector field. By introducing conditional and marginal probability paths, we obtained a closed-form expression for the tractable conditional vector field $u_t^{\\text{target}}(x \\mid z)$ and saw, via the marginalization trick, how these conditional fields assemble into the marginal vector field $u_t^{\\text{target}}(x)$ that actually governs the distribution-level transport.\nThis leaves the next question: even if we know which vector field we want in principle, how do we train a neural network to learn it in practice? That is the problem of this section.\nThe Problem As we learned, we want the neural network $u_t^\\theta$ to approximate the marginal vector field $u_t^{\\text{target}}$. A natural way to achieve this is to use a mean-squared-error objective, namely the flow matching loss defined as\nHere, $\\text{Unif} = \\text{Unif}_{[0,1]}$ denotes the uniform distribution on $[0,1]$, and $\\mathbb{E}$ denotes expectation.\n$$\\mathcal{L}_{\\text{FM}}(\\theta) = \\mathbb{E}_{t \\sim \\text{Unif}, x \\sim p_t}[\\|u_t^\\theta(x) - u_t^{\\text{target}}(x)\\|^2] \\tag{1}$$$$\\overset{(i)}{=} \\mathbb{E}_{t \\sim \\text{Unif}, z \\sim p_{\\text{data}}, x \\sim p_t(\\cdot|z)}[\\|u_t^\\theta(x) - u_t^{\\text{target}}(x)\\|^2]$$where $p_t(x) = \\int p_t(x|z) p_{\\text{data}}(z) \\mathrm{d}z$ is the marginal probability path and in $(i)$ we used the following sampling from marginal path procedure: $$ z \\sim p_{\\text{data}}, \\qquad x \\sim p_t(\\cdot \\mid z) \\qquad \\Longrightarrow \\qquad x \\sim p_t. $$ Intuitively, this loss says: First, draw a random time $t \\in [0,1]$. Second, draw a random point $z$ from our data set, sample $x \\sim p_t(\\cdot|z)$ (e.g., by adding some noise), and compute $u_t^\\theta(x)$. Finally, compute the mean-squared error between the output of our neural network and the marginal vector field $u_t^{\\text{target}}(x)$. However, we are still not done. Although Theorem 10 in [1] gives the marginalization-trick formula for $u_t^{\\text{target}}$,\n$$u_t^{\\text{target}}(x) = \\int u_t^{\\text{target}}(x|z) \\frac{p_t(x|z) p_{\\text{data}}(z)}{p_t(x)} \\mathrm{d}z, \\tag{2}$$we cannot compute it efficiently because the above integral is intractable. Instead, we will exploit the fact that the conditional velocity field $u_t^{\\text{target}}(x|z)$ is tractable. This leads to the conditional flow matching loss\n$$\\mathcal{L}_{\\text{CFM}}(\\theta) = \\mathbb{E}_{t \\sim \\text{Unif}, z \\sim p_{\\text{data}}, x \\sim p_t(\\cdot|z)}[\\|u_t^\\theta(x) - u_t^{\\text{target}}(x|z)\\|^2]$$Note the difference to $\\mathcal{L}_{\\text{FM}}(\\theta)$ in eq. (1): we use the conditional vector field $u_t^{\\text{target}}(x|z)$ instead of the marginal vector field $u_t^{\\text{target}}(x)$. As we have an analytical formula for $u_t^{\\text{target}}(x|z)$, we can minimize the above loss easily.\nBut wait, what sense does it make to regress against the conditional vector field if it’s the marginal vector field we care about? As it turns out, by explicitly regressing against the tractable, conditional vector field, we are implicitly regressing against the intractable, marginal vector field. The next result makes this intuition precise.\nFigure 1. Comparison of Learned Marginal Probability Path and Ground Truth. Panel 1 (Trajectories of Learned Marginal ODE): We use the learned marginal vector field $u_t^\\theta$ to plot the trajectory using ODE simulation. Starting from initial samples $x_0 \\sim p_{\\text{simple}}$, we integrate the learned vector field over time using an ODE solver (e.g., Euler method). Panel 2 (Samples from Learned Marginal ODE): The samples are generated using the trajectory by extracting the points along the simulated ODE trajectories from Panel 1 at specific time steps $t$. Note that the samples appear denser here than the trajectories in Panel 1 because only a limited number of trajectories are drawn in Panel 1 for cleaner visualization. Panel 3 (Ground-Truth Marginal Probability Path): Even though we cannot compute the marginal density $p_t(x)$ directly because the integral is intractable, we can still get the ground truth sample using the marginalization trick: $$ z \\sim p_{\\text{data}}, \\qquad x \\sim p_t(\\cdot \\mid z) \\quad \\Longrightarrow \\quad x \\sim p_t. $$ In the implementation [2], this is done by sampling a target data point $z$ and then sampling $x$ from the conditional distribution $p_t(\\cdot|z)$. Because we use a Gaussian conditional probability path, $x \\sim p_t(\\cdot|z)$ is easily computable as $x = \\alpha_t z + \\beta_t \\epsilon$ where $\\epsilon \\sim \\mathcal{N}(0, I)$. Equivalence of CFM and FM Objectives: Algebraic Proof As we can see, the samples from the learned marginal ODE visually match the ground-truth probability path. This suggests that, although we train against the tractable conditional vector field $u_t^{\\text{target}}(x|z)$, the learned model still recovers the marginal behavior governed by $u_t^{\\text{target}}(x)$.\nTheorem 18. The marginal flow matching loss equals the conditional flow matching loss up to a constant. That is,\n$$ \\mathcal{L}_{\\text{FM}}(\\theta) = \\mathcal{L}_{\\text{CFM}}(\\theta) + C, $$ where $C$ is independent of $\\theta$. Therefore, their gradients coincide:\n$$ \\nabla_\\theta \\mathcal{L}_{\\text{FM}}(\\theta) = \\nabla_\\theta \\mathcal{L}_{\\text{CFM}}(\\theta). $$ Hence, minimizing $\\mathcal{L}_{\\text{CFM}}(\\theta)$ with stochastic gradient descent (SGD) is equivalent to minimizing $\\mathcal{L}_{\\text{FM}}(\\theta)$ in the same fashion. In particular, for the minimizer $\\theta^*$ of $\\mathcal{L}_{\\text{CFM}}(\\theta)$, it will hold that $u_t^{\\theta^*} = u_t^{\\text{target}}$ (assuming an infinitely expressive parameterization). [1]\nProof. The proof works by expanding the mean-squared error into three components and removing constants. [1]\n$$ \\begin{aligned} \\mathcal{L}{\\text{FM}}(\\theta) \u0026\\overset{(i)}{=} \\mathbb{E}{t \\sim \\text{Unif}, x \\sim p_t} \\left[\\left|u_t^\\theta(x) - u_t^{\\text{target}}(x)\\right|^2\\right] \\ \u0026\\overset{(ii)}{=} \\mathbb{E}{t \\sim \\text{Unif}, x \\sim p_t} \\left[\\left|u_t^\\theta(x)\\right|^2 - 2,u_t^\\theta(x)^\\top u_t^{\\text{target}}(x) + \\left|u_t^{\\text{target}}(x)\\right|^2\\right] \\ \u0026\\overset{(iii)}{=} \\mathbb{E}{t \\sim \\text{Unif}, x \\sim p_t}\\left[\\left|u_t^\\theta(x)\\right|^2\\right]\n2\\mathbb{E}_{t \\sim \\text{Unif}, x \\sim p_t}\\left[u_t^\\theta(x)^\\top u_t^{\\text{target}}(x)\\right] \\underbrace{\\mathbb{E}{t \\sim \\text{Unif}{[0,1]}, x \\sim p_t}\\left[\\left|u_t^{\\text{target}}(x)\\right|^2\\right]}{=:C_1} \\ \u0026\\overset{(iv)}{=} \\mathbb{E}{t \\sim \\text{Unif}, z \\sim p_{\\text{data}}, x \\sim p_t(\\cdot|z)} \\left[\\left|u_t^\\theta(x)\\right|^2\\right] 2,{\\color{green}\\boxed{\\color{white}{\\mathbb{E}_{t \\sim \\text{Unif}, x \\sim p_t}\\left[u_t^\\theta(x)^\\top u_t^{\\text{target}}(x)\\right]}}} + C_1 \\end{aligned} $$ where $(i)$ holds by definition, in $(ii)$ we used the formula\n$$ \\|a-b\\|^2 = \\|a\\|^2 - 2a^\\top b + \\|b\\|^2, $$in $(iii)$ we define a constant $C_1$, and in $(iv)$ we used the sampling procedure of $p_t$ given by eq. $(13)$.\n$$\\underbrace{\\mathbb{E}_{t \\sim \\text{Unif}_{[0,1]}, x \\sim p_t}\\left[\\left\\| u_t^{\\text{target}}(x) \\right\\|^2\\right]}_{=: C_1}$$ In (iii), the reason the last part is a constant is that it does not depend on the model parameters $\\theta$, while the first two terms involve $u_t^{\\theta}(x)$.\nLet us reexpress the second summand:\n$$ \\begin{aligned} {\\color{green}\\boxed{{\\color{white}\\mathbb{E}_{{\\color{orange}t \\sim \\text{Unif}, x \\sim p_t}}\\left[u_t^\\theta(x)^\\top\\right]}}} \\color{pink}{u_t^{\\text{target}}(x)} \u0026\\overset{(i)}{=} \\int_0^1 \\int p_t(x)\\, u_t^\\theta(x)^\\top u_t^{\\text{target}}(x)\\,\\mathrm{d}x\\,\\mathrm{d}t \\\\ \u0026\\overset{(ii)}{=} \\int_0^1 \\int \\cancel{p_t(x)}\\, u_t^\\theta(x) {\\color{red}\\boxed{{\\color{white}\\left[\\int u_t^{\\text{target}}(x|z)\\frac{p_t(x|z)p_{\\text{data}}(z)}{\\cancel{p_t(x)}}\\,\\mathrm{d}z\\right]}}} \\,\\mathrm{d}x\\,\\mathrm{d}t \\\\ \u0026\\overset{(iii)}{=} \\int_0^1 \\int \\int u_t^\\theta(x)^\\top u_t^{\\text{target}}(x|z)\\, p_t(x|z)\\, p_{\\text{data}}(z)\\,\\mathrm{d}z\\,\\mathrm{d}x\\,\\mathrm{d}t \\\\ \u0026\\overset{(iv)}{=} \\mathbb{E}_{\\color{orange}{t \\sim \\text{Unif}, z \\sim p_{\\text{data}}}, x \\sim p_t(\\cdot|z)} \\left[ u_t^\\theta(x)^\\top \\color{pink}{u_t^{\\text{target}}(x|z)} \\right] \\end{aligned} $$where in $(i)$ we expressed the expected value as an integral, in $(ii)$ we use eq. $(2)$, in $(iii)$ we use the fact that integrals are linear, and in $(iv)$ we express the integral as an expected value.\nNote that this was really the crucial step of the proof:\nThe beginning of the equality used the marginal vector field $u^{\\text{target}}_t(x)$, while the end uses the conditional vector field $u^{\\text{target}}_t(x|z)$.\nRegarding (iii), it says integral is linear, let's get to the definition of linearity. For an operator $T$, it is **linear** if for any functions $f, g$ and scalars $a, b$, $$ T(af + bg) = aT(f) + bT(g). $$ This combines two properties:\nAdditivity: $T(f + g) = T(f) + T(g)$ Homogeneity: $T(af) = aT(f)$ We plug is into the equation for L FMto get:\n$$ \\begin{aligned} \\mathcal{L}{\\text{FM}}(\\theta) \u0026\\overset{(i)}{=} \\mathbb{E}{t \\sim \\text{Unif}, z \\sim p_{\\text{data}}, x \\sim p_t(\\cdot|z)} \\left[\\left|u_t^\\theta(x)\\right|^2\\right]\n2\\mathbb{E}{t \\sim \\text{Unif}, z \\sim p{\\text{data}}, x \\sim p_t(\\cdot|z)} \\left[u_t^\\theta(x)^\\top u_t^{\\text{target}}(x|z)\\right] C_1 \\ \u0026\\overset{(ii)}{=} \\mathbb{E}{t \\sim \\text{Unif}, z \\sim p{\\text{data}}, x \\sim p_t(\\cdot|z)} \\left[ \\left|u_t^\\theta(x)\\right|^2 2u_t^\\theta(x)^\\top u_t^{\\text{target}}(x|z) {\\color{cyan}+ \\left|u_t^{\\text{target}}(x|z)\\right|^2} {\\color{red}- \\left|u_t^{\\text{target}}(x|z)\\right|^2} \\right] C_1 \\ \u0026\\overset{(iii)}{=} \\mathbb{E}{t \\sim \\text{Unif}, z \\sim p{\\text{data}}, x \\sim p_t(\\cdot|z)} \\left[\\left|u_t^\\theta(x) - u_t^{\\text{target}}(x|z)\\right|^2\\right] \\underbrace{\\mathbb{E}{t \\sim \\text{Unif}, z \\sim p{\\text{data}}, x \\sim p_t(\\cdot|z)} \\left[-\\left|u_t^{\\text{target}}(x|z)\\right|^2\\right]}_{C_2} C_1 \\ \u0026\\overset{(iv)}{=} \\mathcal{L}{\\text{CFM}}(\\theta) + \\underbrace{C_2 + C_1}{=:C}. \\end{aligned} $$ where in $(i)$ we plugged in the derived equation, in $(ii)$ we added and subtracted the same value, in $(iii)$ we used the formula $\\|a-b\\|^2 = \\|a\\|^2 - 2a^\\top b + \\|b\\|^2$ again, and in $(iv)$ we defined a constant in $\\theta$. This finishes the proof.\nOnce $u_t^\\theta$ has been trained, we may simulate the flow model\n$$ \\mathrm{d}X_t = u_t^\\theta(X_t)\\,\\mathrm{d}t, \\qquad X_0 \\sim p_{\\text{init}} $$via, e.g., algorithm 1 to obtain samples $X_1 \\sim p_{\\text{data}}$. Let us now instantiate the conditional flow matching loss for the choice of Gaussian probability paths:\nWhy Conditional Training Recovers the Marginal Field: Visual View The Apparent Contradiction Training minimizes the CFM loss: $$\\mathcal{L}_{\\text{CFM}}(\\theta) = \\mathbb{E}_{t,\\, z \\sim p_{\\text{data}},\\, x \\sim p_t(x|z)} \\left[\\| u_t^\\theta(x, t) - u_t^{\\text{target}}(x|z) \\|^2 \\right]$$Each training sample provides a conditional target $u_t(x|z)$ — yet the trained model learns the marginal vector field $u_t(x) = \\mathbb{E}_{z \\sim p(z|x,t)}[u_t(x|z)]$. Why?\nTraining Data Sparsity and the Contradiction Made Visible The following visualization calls visualize_relevant_training_data, which zooms into the neighbourhood of the query point $x^*$ at the optimal time $t^*$ and displays only the training samples within a small spatial and time window. The plot simultaneously reveals two things:\n1. Training data sparsity. Only a handful of points (here, $n=39$) land near any specific $(x, t)$ location. Many fall outside the bounding box entirely. Despite this, the model converges to the correct marginal vector field because neural network generalization covers the $(x, t)$ input space smoothly.\n2. The contradiction made visible. Each colour-coded arrow is the conditional target $u_t(x_i | z_i)$ for a nearby training sample, coloured by $\\log p_t(x_i | z_i)$ (plasma colormap: bright yellow = high likelihood, dark purple = low). Because each $z_i$ is different, the arrows scatter in conflicting directions — even though the inputs $(x_i, t_i)$ are nearly identical. This is the contradiction: the model receives a single input $(x, t)$ but is asked to match many different targets simultaneously. The orange arrow — the learned $u_t^\\theta(x^*)$ — is a posterior average of conditional vector field as proved by last visualization. This is not a coincidence: since $z$ is never passed to the model, the L2 loss has no other choice but to pull $u_t^\\theta(x, t)$ toward $\\mathbb{E}_{z \\sim p(z|x,t)}[u_t(x|z)]$, which is exactly the marginal vector field $u_t^{\\text{target}}(x)$.\nFigure 2. Visualization of training data. Figure 3. Visualization of relevant training data. The Key: $z$ is Hidden from the Model The model signature is $u_t^\\theta(x, t)$ — it takes only $(x, t)$ as input, never $z$.\nDuring training, $z$ appears in the data only to compute the supervision target $u_t(x|z)$; it is discarded and never passed to the network. This creates a fundamental information bottleneck.\nQuantity Available to the model during training Available at inference $x$ Yes (input) Yes (input) $t$ Yes (input) Yes (input) $z$ No — used only to compute target, then discarded No $u_t(x\\|z)$ Yes — as the loss target No Why Hidden $z$ Forces the Model to Learn the Marginal - “Visual” For any fixed input $(x, t)$, many different $z$’s are compatible with that $x$ at that time (because $\\beta_t \u003e 0$ at intermediate times, so the Gaussian clouds overlap). The model must emit a single output vector for all those different $z$’s, but the training targets $u_t(x|z_1), u_t(x|z_2), \\ldots$ all point in different directions.\nThis is a standard regression problem with a hidden variable. The fundamental result is:\nThe minimizer of $\\mathbb{E}[(y - c)^2]$ over a constant $c$ (one that cannot depend on the hidden variable) is $c^* = \\mathbb{E}[y]$.\nHere $y = u_t(x|z)$ and $c = u_t^\\theta(x, t)$ is constant with respect to $z$. So the L2-optimal prediction is: $$u_t^{\\theta*}(x, t) = \\mathbb{E}_{z \\sim p(z|x,t)}\\left[ u_t(x|z) \\right] = u_t^{\\text{target}}(x)$$The model cannot “pick a side” when it cannot see which $z$ generated the sample. The averaging is a direct consequence of the L2 loss geometry combined with the hidden $z$.\nConnection to Theorem 18 (Algebraic View) Theorem 18 arrives at the same conclusion by expanding the CFM loss: $$\\|u_t^\\theta - u_t(x|z)\\|^2 = \\|u_t^\\theta - u_t(x)\\|^2 + 2(u_t^\\theta - u_t(x))\\cdot\\underbrace{(u_t(x) - u_t(x|z))}_{\\text{zero mean over } z|x,t} + \\underbrace{\\|u_t(x) - u_t(x|z)\\|^2}_{\\text{constant in } \\theta}$$Taking $\\mathbb{E}_{z \\sim p(z|x,t)}[\\cdot]$: the cross-term vanishes because $\\mathbb{E}[u_t(x|z) \\mid x,t] = u_t(x)$, and the last term is independent of $\\theta$. Therefore $\\nabla_\\theta \\mathcal{L}_{\\text{CFM}} = \\nabla_\\theta \\mathcal{L}_{\\text{FM}}$ — same gradients, same minimizer.\nThe two perspectives are two sides of the same coin:\nRegression view: hidden $z$ + L2 loss → forced averaging → learns marginal. Algebraic view (Theorem 18): cross-term vanishes in expectation → $\\mathcal{L}_{\\text{CFM}}$ and $\\mathcal{L}_{\\text{FM}}$ share the same minimizer. Why Sparse Training Data is Sufficient The two effects play distinct roles:\nEffect What space is covered What it explains Hidden $z$ + L2 averaging Coverage of $z$’s at a fixed $(x,t)$ What the model converges to: the marginal $u_t(x)$ Neural network generalization Coverage of the $(x,t)$ input space How efficiently training reaches that target from finite data Even though the training set is a finite sample, the MLP generalizes smoothly across $(x,t)$ space, so optimizing the loss on sampled mini-batches still drives $u_t^\\theta$ toward the true minimizer everywhere. Generalization is a prerequisite — it ensures sensible outputs across all of $(x,t)$ — but it does not explain why those outputs are specifically the posterior average of conditional vector fields. That is entirely due to the hidden $z$ mechanism.\nFlow Matching Loss for Gaussian Conditional Probability Paths Let us return to the example of Gaussian probability paths $$ p_t(\\cdot|z) = \\mathcal{N}(\\alpha_t z; \\beta_t^2 I_d), $$ where we may sample from the conditional path via [1] $$ \\epsilon \\sim \\mathcal{N}(0, I_d) \\qquad \\Longrightarrow \\qquad x_t = \\alpha_t z + \\beta_t \\epsilon \\sim \\mathcal{N}(\\alpha_t z, \\beta_t^2 I_d) = p_t(\\cdot|z). \\tag{3} $$As we derived in eq. $(21)$, the conditional vector field $u_t^{\\text{target}}(x|z)$ is given by $$ u_t^{\\text{target}}(x|z) = \\left(\\dot{\\alpha}_t - \\frac{\\dot{\\beta}_t}{\\beta_t}\\alpha_t\\right)z + \\frac{\\dot{\\beta}_t}{\\beta_t}x, $$ where $\\dot{\\alpha}_t = \\partial_t \\alpha_t$ and $\\dot{\\beta}_t = \\partial_t \\beta_t$ are the respective time derivatives. Plugging in this formula, the conditional flow matching loss reads $$ \\mathcal{L}_{\\text{CFM}}(\\theta) = \\mathbb{E}_{t \\sim \\text{Unif}, z \\sim p_{\\text{data}}, x \\sim \\mathcal{N}(\\alpha_t z, \\beta_t^2 I_d)} \\left[ \\left\\|u_t^\\theta(x) - \\left( \\left(\\dot{\\alpha}_t - \\frac{\\dot{\\beta}_t}{\\beta_t}\\alpha_t\\right)z + \\frac{\\dot{\\beta}_t}{\\beta_t}x \\right)\\right\\|^2 \\right] $$ $$ \\overset{(i)}{=} \\mathbb{E}_{t \\sim \\text{Unif}, z \\sim p_{\\text{data}}, \\epsilon \\sim \\mathcal{N}(0, I_d)} \\left[ \\left\\|u_t^\\theta(\\alpha_t z + \\beta_t \\epsilon) - (\\dot{\\alpha}_t z + \\dot{\\beta}_t \\epsilon)\\right\\|^2 \\right], $$ where in $(i)$ we plugged in eq. $(3)$ and replaced $x$ by $\\alpha_t z + \\beta_t \\epsilon$. Note the simplicity of $\\mathcal{L}_{\\text{CFM}}$: we sample a data point $z$, sample some noise $\\epsilon$, and then take a mean squared error.\nLet us make this even more concrete for the special case of $\\alpha_t = t$ and $\\beta_t = 1 - t$. The corresponding probability path $$ p_t(x|z) = \\mathcal{N}(tz, (1-t)^2) $$ is sometimes referred to as the (Gaussian) CondOT probability path. Then we have $\\dot{\\alpha}_t = 1$ and $\\dot{\\beta}_t = -1$, so that $$ \\mathcal{L}_{\\text{cfm}}(\\theta) = \\mathbb{E}_{t \\sim \\text{Unif}, z \\sim p_{\\text{data}}, \\epsilon \\sim \\mathcal{N}(0, I_d)} \\left[ \\left\\|u_t^\\theta({\\color{orange}tz + (1-t)\\epsilon}) - (z - \\epsilon)\\right\\|^2 \\right]. $$Many famous state-of-the-art models have been trained using this simple yet effective procedure, e.g. Stable Diffusion 3, Meta’s Movie Gen Video, and probably many more proprietary models. In fig. 9, we visualize it in a simple example and in algorithm 3 we summarize the training procedure. [1]\n$$ \\boxed{ \\begin{aligned} \u0026 \\textbf{Algorithm 3 } \\text{Flow Matching Training Procedure (here for Gaussian CondOT path } p_t(x|z) = \\mathcal{N}(tz,(1-t)^2)\\text{)} \\\\ \u0026 \\textbf{Require: } \\text{A dataset of samples } z \\sim p_{\\text{data}}, \\text{ neural network } u_t^\\theta. \\\\[4pt] \u0026 1: \\; \\textbf{for } \\text{each mini-batch of data } \\textbf{do} \\\\ \u0026 2: \\quad \\text{Sample a data example } z \\text{ from the dataset.} \\\\ \u0026 3: \\quad \\text{Sample a random time } t \\sim \\text{Unif}_{[0,1]}. \\\\ \u0026 4: \\quad \\text{Sample noise } \\epsilon \\sim \\mathcal{N}(0, I_d). \\\\ \u0026 5: \\quad \\text{Set } x = {\\color{orange}tz + (1-t)\\epsilon}. \\hspace{2em} \\text{(General case: } x \\sim p_t(\\cdot|z)\\text{)} \\\\ \u0026 6: \\quad \\text{Compute loss} \\\\ \u0026 \\qquad \\mathcal{L}(\\theta) = \\left\\|u_t^\\theta(x) - (z - \\epsilon)\\right\\|^2 \\hspace{2em} \\text{(General case: } \\left\\|u_t^\\theta(x) - u_t^{\\text{target}}(x|z)\\right\\|^2\\text{)} \\\\ \u0026 7: \\quad \\text{Update the model parameters } \\theta \\text{ via gradient descent on } \\mathcal{L}(\\theta). \\\\ \u0026 8: \\; \\textbf{end for} \\end{aligned} } $$Intuition Behind the Flow Matching Loss The flow matching loss is given by $$ \\mathcal{L}(\\theta) = \\left\\|u_t^{\\theta}(x) - (z - \\epsilon)\\right\\|^2, \\quad \\text{where} \\; x = t z + (1-t)\\epsilon $$For the (Gaussian) CondOT path, once both $z$ and $\\epsilon$ are fixed, the trajectory $$ x_t = t z + (1-t)\\epsilon $$ is a straight line, so its velocity is the constant vector $$ \\frac{d x_t}{dt} = z-\\epsilon. $$ Accordingly, the loss trains $u_t^\\theta(x)$ to match the full target velocity $z-\\epsilon$, including both its direction and its magnitude. Importantly, this target velocity is determined jointly by $z$ and $\\epsilon$: changing $\\epsilon$ changes the straight-line path, and therefore changes the velocity as well.\nFigure 4. Linear beta schedule: $\\alpha_t = t$ and $\\beta_t = 1-t$. For fixed $z$ and $\\epsilon$, the conditional trajectory $x_t = tz + (1-t)\\epsilon$ is a straight line with constant velocity $z-\\epsilon$, so the flow matching objective trains $u_t^\\theta(x)$ to recover this full target velocity, including both direction and magnitude. References [1] Peter Holderrieth and Ezra Erives. Introduction to Flow Matching and Diffusion Models. 2025. https://diffusion.csail.mit.edu/\n[2] Bai-YunHan. Companion code for Introduction to Flow Matching Model. GitHub repository. https://github.com/Bai-YunHan/Companion-code-for-Introduction-to-Flow-Matching-Model\n",
+  "wordCount" : "2800",
+  "inLanguage": "en",
+  "datePublished": "2026-04-12T00:00:00Z",
+  "dateModified": "2026-04-12T00:00:00Z",
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "https://bai-yunhan.github.io/posts/flow-matching-section-3-constructing-training-loss/"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "Yechao's Blog",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "https://bai-yunhan.github.io/favicon.ico"
+    }
+  }
+}
+</script>
+</head>
+<body id="top">
+    <header class="header">
+    <nav class="nav">
+        <div class="logo">
+            <a href="https://bai-yunhan.github.io/" accesskey="h" title="Yechao&#39;s Blog (Alt + H)">Yechao&#39;s Blog</a>
+            <div class="logo-switches">
+                <button id="theme-toggle" accesskey="t" title="(Alt + T)" aria-label="Toggle theme">
+                    <svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <svg id="sun" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <ul id="menu">
+            <li>
+                <a href="https://bai-yunhan.github.io/" title="Posts">
+                    <span>Posts</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://bai-yunhan.github.io/archives/" title="Archive">
+                    <span>Archive</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://bai-yunhan.github.io/search/" title="Search (Alt &#43; /)" accesskey=/>
+                    <span>Search</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://bai-yunhan.github.io/tags/" title="Tags">
+                    <span>Tags</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<main class="main">
+
+<article class="post-single">
+  <header class="post-header">
+    
+    <h1 class="post-title entry-hint-parent">
+      Introduction to Flow Matching Model, Part 3 of 3: Constructing the Training Loss
+    </h1>
+    <div class="post-description">
+      Why training on the conditional vector field recovers the marginal vector field. Derives the conditional flow matching (CFM) loss, proves its equivalence to the flow matching loss, and explains the hidden-variable averaging mechanism.
+    </div>
+    <div class="post-meta"><span title='2026-04-12 00:00:00 +0000 UTC'>April 12, 2026</span>&nbsp;·&nbsp;<span>14 min</span>
+
+</div>
+  </header> <div class="toc">
+    <details  open>
+        <summary accesskey="c" title="(Alt + C)">
+            <span class="details">Table of Contents</span>
+        </summary>
+
+        <div class="inner"><ul>
+                <li>
+                    <a href="#constructing-the-training-loss" aria-label="Constructing the Training Loss">Constructing the Training Loss</a></li>
+                <li>
+                    <a href="#the-problem" aria-label="The Problem">The Problem</a></li>
+                <li>
+                    <a href="#equivalence-of-cfm-and-fm-objectives-algebraic-proof" aria-label="Equivalence of CFM and FM Objectives: Algebraic Proof">Equivalence of CFM and FM Objectives: Algebraic Proof</a></li>
+                <li>
+                    <a href="#why-conditional-training-recovers-the-marginal-field-visual-view" aria-label="Why Conditional Training Recovers the Marginal Field: Visual View">Why Conditional Training Recovers the Marginal Field: Visual View</a><ul>
+                        
+                <li>
+                    <a href="#the-apparent-contradiction" aria-label="The Apparent Contradiction">The Apparent Contradiction</a></li>
+                <li>
+                    <a href="#training-data-sparsity-and-the-contradiction-made-visible" aria-label="Training Data Sparsity and the Contradiction Made Visible">Training Data Sparsity and the Contradiction Made Visible</a></li>
+                <li>
+                    <a href="#the-key--is-hidden-from-the-model" aria-label="The Key: $z$ is Hidden from the Model">The Key: $z$ is Hidden from the Model</a></li>
+                <li>
+                    <a href="#why-hidden--forces-the-model-to-learn-the-marginal---visual" aria-label="Why Hidden $z$ Forces the Model to Learn the Marginal - &ldquo;Visual&rdquo;">Why Hidden $z$ Forces the Model to Learn the Marginal - &ldquo;Visual&rdquo;</a></li>
+                <li>
+                    <a href="#connection-to-theorem-18-algebraic-view" aria-label="Connection to Theorem 18 (Algebraic View)">Connection to Theorem 18 (Algebraic View)</a></li>
+                <li>
+                    <a href="#why-sparse-training-data-is-sufficient" aria-label="Why Sparse Training Data is Sufficient">Why Sparse Training Data is Sufficient</a></li></ul>
+                </li>
+                <li>
+                    <a href="#flow-matching-loss-for-gaussian-conditional-probability-paths" aria-label="Flow Matching Loss for Gaussian Conditional Probability Paths">Flow Matching Loss for Gaussian Conditional Probability Paths</a><ul>
+                        
+                <li>
+                    <a href="#intuition-behind-the-flow-matching-loss" aria-label="Intuition Behind the Flow Matching Loss">Intuition Behind the Flow Matching Loss</a></li></ul>
+                </li>
+                <li>
+                    <a href="#references" aria-label="References">References</a>
+                </li>
+            </ul>
+        </div>
+    </details>
+</div>
+
+  <div class="post-content"><h1 id="constructing-the-training-loss">Constructing the Training Loss<a hidden class="anchor" aria-hidden="true" href="#constructing-the-training-loss">#</a></h1>
+<p>Section 1 framed generative modeling as sampling through transformation: start from a simple distribution and transport samples toward the data distribution by integrating an ODE. In that picture, the learned vector field is the local motion rule, and the induced flow is the global transformation that turns noise into data.</p>
+<p>Section 2 then showed how to construct the relevant target vector field. By introducing conditional and marginal probability paths, we obtained a closed-form expression for the tractable conditional vector field $u_t^{\text{target}}(x \mid z)$ and saw, via the marginalization trick, how these conditional fields assemble into the marginal vector field $u_t^{\text{target}}(x)$ that actually governs the distribution-level transport.</p>
+<p>This leaves the next question: even if we know which vector field we want in principle, how do we train a neural network to learn it in practice? That is the problem of this section.</p>
+<h1 id="the-problem">The Problem<a hidden class="anchor" aria-hidden="true" href="#the-problem">#</a></h1>
+<p>As we learned, we want the neural network $u_t^\theta$ to approximate the marginal vector field $u_t^{\text{target}}$. A natural way to achieve this is to use a mean-squared-error objective, namely the <strong>flow matching loss</strong> defined as</p>
+<p>Here, $\text{Unif} = \text{Unif}_{[0,1]}$ denotes the uniform distribution on $[0,1]$, and $\mathbb{E}$ denotes expectation.</p>
+$$\mathcal{L}_{\text{FM}}(\theta) = \mathbb{E}_{t \sim \text{Unif}, x \sim p_t}[\|u_t^\theta(x) - u_t^{\text{target}}(x)\|^2] \tag{1}$$$$\overset{(i)}{=} \mathbb{E}_{t \sim \text{Unif}, z \sim p_{\text{data}}, x \sim p_t(\cdot|z)}[\|u_t^\theta(x) - u_t^{\text{target}}(x)\|^2]$$<p>where $p_t(x) = \int p_t(x|z) p_{\text{data}}(z) \mathrm{d}z$ is the marginal probability path and in $(i)$ we used the following <strong>sampling from marginal path</strong> procedure:
+</p>
+$$
 z \sim p_{\text{data}}, \qquad x \sim p_t(\cdot \mid z) \qquad \Longrightarrow \qquad x \sim p_t.
-$$<p><strong>Intuitively, this loss says</strong>: First, draw a random time $t \in [0,1]$. Second, draw a random point $z$ from our data set, sample $x \sim p_t(\cdot|z)$ (e.g., by <strong>adding</strong> some noise), and compute $u_t^\theta(x)$. Finally, compute the mean-squared error between the output of our neural network and the marginal vector field $u_t^{\text{target}}(x)$. However, we are still not done. Although Theorem 10 in [1] gives the marginalization-trick formula for $u_t^{\text{target}}$,</p>$$u_t^{\text{target}}(x) = \int u_t^{\text{target}}(x|z) \frac{p_t(x|z) p_{\text{data}}(z)}{p_t(x)} \mathrm{d}z, \tag{2}$$<p>we cannot compute it efficiently because the above integral is intractable. Instead, we will exploit the fact that the <strong>conditional</strong> velocity field $u_t^{\text{target}}(x|z)$ is tractable. This leads to the <strong>conditional flow matching loss</strong></p>$$\mathcal{L}_{\text{CFM}}(\theta) = \mathbb{E}_{t \sim \text{Unif}, z \sim p_{\text{data}}, x \sim p_t(\cdot|z)}[\|u_t^\theta(x) - u_t^{\text{target}}(x|z)\|^2]$$<p>Note the difference to $\mathcal{L}_{\text{FM}}(\theta)$ in eq. (1): we use the conditional vector field $u_t^{\text{target}}(x|z)$ instead of the marginal vector field $u_t^{\text{target}}(x)$. As we have an analytical formula for $u_t^{\text{target}}(x|z)$, we can minimize the above loss easily.</p><p>But wait, what sense does it make to regress against the conditional vector field if it&rsquo;s the marginal vector field we care about? As it turns out, by <em>explicitly</em> regressing against the tractable, conditional vector field, we are <em>implicitly</em> regressing against the intractable, marginal vector field. The next result makes this intuition precise.</p><figure><img src=./compare_marginal_probability_path.png width=900><figcaption>Figure 1. Comparison of Learned Marginal Probability Path and Ground Truth.</figcaption></figure><ul><li><strong>Panel 1 (Trajectories of Learned Marginal ODE):</strong> We use the learned marginal vector field $u_t^\theta$ to plot the trajectory using ODE simulation. Starting from initial samples $x_0 \sim p_{\text{simple}}$, we integrate the learned vector field over time using an ODE solver (e.g., Euler method).</li><li><strong>Panel 2 (Samples from Learned Marginal ODE):</strong> The samples are generated using the trajectory by extracting the points along the simulated ODE trajectories from Panel 1 at specific time steps $t$. Note that the samples appear denser here than the trajectories in Panel 1 because only a limited number of trajectories are drawn in Panel 1 for cleaner visualization.</li><li><strong>Panel 3 (Ground-Truth Marginal Probability Path):</strong> Even though we cannot compute the marginal density $p_t(x)$ directly because the integral is intractable, we can still get the ground truth sample using the marginalization trick:
+$$<p>
+<strong>Intuitively, this loss says</strong>: First, draw a random time $t \in [0,1]$. Second, draw a random point $z$ from our data set, sample $x \sim p_t(\cdot|z)$ (e.g., by <strong>adding</strong> some noise), and compute $u_t^\theta(x)$. Finally, compute the mean-squared error between the output of our neural network and the marginal vector field $u_t^{\text{target}}(x)$. However, we are still not done. Although Theorem 10 in [1] gives the marginalization-trick formula for $u_t^{\text{target}}$,</p>
+$$u_t^{\text{target}}(x) = \int u_t^{\text{target}}(x|z) \frac{p_t(x|z) p_{\text{data}}(z)}{p_t(x)} \mathrm{d}z, \tag{2}$$<p>we cannot compute it efficiently because the above integral is intractable. Instead, we will exploit the fact that the <strong>conditional</strong> velocity field $u_t^{\text{target}}(x|z)$ is tractable. This leads to the <strong>conditional flow matching loss</strong></p>
+$$\mathcal{L}_{\text{CFM}}(\theta) = \mathbb{E}_{t \sim \text{Unif}, z \sim p_{\text{data}}, x \sim p_t(\cdot|z)}[\|u_t^\theta(x) - u_t^{\text{target}}(x|z)\|^2]$$<p>Note the difference to $\mathcal{L}_{\text{FM}}(\theta)$ in eq. (1): we use the conditional vector field $u_t^{\text{target}}(x|z)$ instead of the marginal vector field $u_t^{\text{target}}(x)$. As we have an analytical formula for $u_t^{\text{target}}(x|z)$, we can minimize the above loss easily.</p>
+<p>But wait, what sense does it make to regress against the conditional vector field if it&rsquo;s the marginal vector field we care about? As it turns out, by <em>explicitly</em> regressing against the tractable, conditional vector field, we are <em>implicitly</em> regressing against the intractable, marginal vector field. The next result makes this intuition precise.</p>
+<figure>
+  <img src="./compare_marginal_probability_path.png" width="900" />
+  <figcaption>Figure 1. Comparison of Learned Marginal Probability Path and Ground Truth.</figcaption>
+</figure>
+<ul>
+<li><strong>Panel 1 (Trajectories of Learned Marginal ODE):</strong> We use the learned marginal vector field $u_t^\theta$ to plot the trajectory using ODE simulation. Starting from initial samples $x_0 \sim p_{\text{simple}}$, we integrate the learned vector field over time using an ODE solver (e.g., Euler method).</li>
+<li><strong>Panel 2 (Samples from Learned Marginal ODE):</strong> The samples are generated using the trajectory by extracting the points along the simulated ODE trajectories from Panel 1 at specific time steps $t$. Note that the samples appear denser here than the trajectories in Panel 1 because only a limited number of trajectories are drawn in Panel 1 for cleaner visualization.</li>
+<li><strong>Panel 3 (Ground-Truth Marginal Probability Path):</strong> Even though we cannot compute the marginal density $p_t(x)$ directly because the integral is intractable, we can still get the ground truth sample using the marginalization trick:
 $$
-z \sim p_{\text{data}}, \qquad x \sim p_t(\cdot \mid z) \quad \Longrightarrow \quad x \sim p_t.
+  z \sim p_{\text{data}}, \qquad x \sim p_t(\cdot \mid z) \quad \Longrightarrow \quad x \sim p_t.
+  $$
+In the implementation [2], this is done by sampling a target data point $z$ and then sampling $x$ from the conditional distribution $p_t(\cdot|z)$. Because we use a Gaussian conditional probability path, $x \sim p_t(\cdot|z)$ is easily computable as $x = \alpha_t z + \beta_t \epsilon$ where $\epsilon \sim \mathcal{N}(0, I)$.</li>
+</ul>
+<h1 id="equivalence-of-cfm-and-fm-objectives-algebraic-proof">Equivalence of CFM and FM Objectives: Algebraic Proof<a hidden class="anchor" aria-hidden="true" href="#equivalence-of-cfm-and-fm-objectives-algebraic-proof">#</a></h1>
+<p>As we can see, the samples from the learned marginal ODE visually match the ground-truth probability path. This suggests that, although we train against the tractable conditional vector field $u_t^{\text{target}}(x|z)$, the learned model still recovers the marginal behavior governed by $u_t^{\text{target}}(x)$.</p>
+<blockquote>
+<p><strong>Theorem 18.</strong> The marginal flow matching loss equals the conditional flow matching loss up to a constant. That is,</p>
+</blockquote>
 $$
-In the implementation [2], this is done by sampling a target data point $z$ and then sampling $x$ from the conditional distribution $p_t(\cdot|z)$. Because we use a Gaussian conditional probability path, $x \sim p_t(\cdot|z)$ is easily computable as $x = \alpha_t z + \beta_t \epsilon$ where $\epsilon \sim \mathcal{N}(0, I)$.</li></ul><h1 id=equivalence-of-cfm-and-fm-objectives-algebraic-proof>Equivalence of CFM and FM Objectives: Algebraic Proof<a hidden class=anchor aria-hidden=true href=#equivalence-of-cfm-and-fm-objectives-algebraic-proof>#</a></h1><p>As we can see, the samples from the learned marginal ODE visually match the ground-truth probability path. This suggests that, although we train against the tractable conditional vector field $u_t^{\text{target}}(x|z)$, the learned model still recovers the marginal behavior governed by $u_t^{\text{target}}(x)$.</p><blockquote><p><strong>Theorem 18.</strong> The marginal flow matching loss equals the conditional flow matching loss up to a constant. That is,</p>$$
-> \mathcal{L}_{\text{FM}}(\theta) = \mathcal{L}_{\text{CFM}}(\theta) + C,
-> $$<p>where $C$ is independent of $\theta$. Therefore, their gradients coincide:</p>$$
-> \nabla_\theta \mathcal{L}_{\text{FM}}(\theta) = \nabla_\theta \mathcal{L}_{\text{CFM}}(\theta).
-> $$<p>Hence, minimizing $\mathcal{L}_{\text{CFM}}(\theta)$ with stochastic gradient descent (SGD) is equivalent to minimizing $\mathcal{L}_{\text{FM}}(\theta)$ in the same fashion. In particular, for the minimizer $\theta^*$ of $\mathcal{L}_{\text{CFM}}(\theta)$, it will hold that $u_t^{\theta^*} = u_t^{\text{target}}$ (assuming an infinitely expressive parameterization). [1]</p></blockquote><p><strong>Proof.</strong> The proof works by expanding the mean-squared error into three components and removing constants. [1]</p><p>$$
+\mathcal{L}_{\text{FM}}(\theta) = \mathcal{L}_{\text{CFM}}(\theta) + C,
+$$<blockquote>
+<p>where $C$ is independent of $\theta$. Therefore, their gradients coincide:</p>
+</blockquote>
+$$
+\nabla_\theta \mathcal{L}_{\text{FM}}(\theta) = \nabla_\theta \mathcal{L}_{\text{CFM}}(\theta).
+$$<blockquote>
+<p>Hence, minimizing $\mathcal{L}_{\text{CFM}}(\theta)$ with stochastic gradient descent (SGD) is equivalent to minimizing $\mathcal{L}_{\text{FM}}(\theta)$ in the same fashion. In particular, for the minimizer $\theta^*$ of $\mathcal{L}_{\text{CFM}}(\theta)$, it will hold that $u_t^{\theta^*} = u_t^{\text{target}}$ (assuming an infinitely expressive parameterization). [1]</p>
+</blockquote>
+<p><strong>Proof.</strong> The proof works by expanding the mean-squared error into three components and removing constants. [1]</p>
+<p>$$
 \begin{aligned}
 \mathcal{L}<em>{\text{FM}}(\theta)
-&\overset{(i)}{=}
+&amp;\overset{(i)}{=}
 \mathbb{E}</em>{t \sim \text{Unif}, x \sim p_t}
 \left[\left|u_t^\theta(x) - u_t^{\text{target}}(x)\right|^2\right] \
-&\overset{(ii)}{=}
+&amp;\overset{(ii)}{=}
 \mathbb{E}<em>{t \sim \text{Unif}, x \sim p_t}
 \left[\left|u_t^\theta(x)\right|^2 - 2,u_t^\theta(x)^\top u_t^{\text{target}}(x) + \left|u_t^{\text{target}}(x)\right|^2\right] \
-&\overset{(iii)}{=}
-\mathbb{E}</em>{t \sim \text{Unif}, x \sim p_t}\left[\left|u_t^\theta(x)\right|^2\right]</p><ul><li>2\mathbb{E}_{t \sim \text{Unif}, x \sim p_t}\left[u_t^\theta(x)^\top u_t^{\text{target}}(x)\right]</li></ul><ul><li>\underbrace{\mathbb{E}<em>{t \sim \text{Unif}</em>{[0,1]}, x \sim p_t}\left[\left|u_t^{\text{target}}(x)\right|^2\right]}<em>{=:C_1} \
-&\overset{(iv)}{=}
+&amp;\overset{(iii)}{=}
+\mathbb{E}</em>{t \sim \text{Unif}, x \sim p_t}\left[\left|u_t^\theta(x)\right|^2\right]</p>
+<ul>
+<li>2\mathbb{E}_{t \sim \text{Unif}, x \sim p_t}\left[u_t^\theta(x)^\top u_t^{\text{target}}(x)\right]</li>
+</ul>
+<ul>
+<li>\underbrace{\mathbb{E}<em>{t \sim \text{Unif}</em>{[0,1]}, x \sim p_t}\left[\left|u_t^{\text{target}}(x)\right|^2\right]}<em>{=:C_1} \
+&amp;\overset{(iv)}{=}
 \mathbb{E}</em>{t \sim \text{Unif}, z \sim p_{\text{data}}, x \sim p_t(\cdot|z)}
-\left[\left|u_t^\theta(x)\right|^2\right]</li></ul><ul><li>2,{\color{green}\boxed{\color{white}{\mathbb{E}_{t \sim \text{Unif}, x \sim p_t}\left[u_t^\theta(x)^\top u_t^{\text{target}}(x)\right]}}} + C_1
+\left[\left|u_t^\theta(x)\right|^2\right]</li>
+</ul>
+<ul>
+<li>2,{\color{green}\boxed{\color{white}{\mathbb{E}_{t \sim \text{Unif}, x \sim p_t}\left[u_t^\theta(x)^\top u_t^{\text{target}}(x)\right]}}} + C_1
 \end{aligned}
-$$</li></ul><p>where $(i)$ holds by definition, in $(ii)$ we used the formula</p>$$
+$$</li>
+</ul>
+<p>where $(i)$ holds by definition, in $(ii)$ we used the formula</p>
+$$
 \|a-b\|^2 = \|a\|^2 - 2a^\top b + \|b\|^2,
 $$<p>in $(iii)$ we define a constant $C_1$, and in $(iv)$ we used the sampling procedure of
-$p_t$ given by eq. $(13)$.</p>$$\underbrace{\mathbb{E}_{t \sim \text{Unif}_{[0,1]}, x \sim p_t}\left[\left\| u_t^{\text{target}}(x) \right\|^2\right]}_{=: C_1}$$<p>In (iii), the reason the last part is a constant is that it does not depend on the model parameters $\theta$, while the first two terms involve $u_t^{\theta}(x)$.</p><p>Let us reexpress the second summand:</p>$$
+$p_t$ given by eq. $(13)$.</p>
+$$\underbrace{\mathbb{E}_{t \sim \text{Unif}_{[0,1]}, x \sim p_t}\left[\left\| u_t^{\text{target}}(x) \right\|^2\right]}_{=: C_1}$$<p>
+In (iii), the reason the last part is a constant is that it does not depend on the model parameters $\theta$, while the first two terms involve $u_t^{\theta}(x)$.</p>
+<p>Let us reexpress the second summand:</p>
+$$
 \begin{aligned}
 {\color{green}\boxed{{\color{white}\mathbb{E}_{{\color{orange}t \sim \text{Unif}, x \sim p_t}}\left[u_t^\theta(x)^\top\right]}}}
 \color{pink}{u_t^{\text{target}}(x)}
@@ -52,75 +367,217 @@ u_t^\theta(x)^\top
 \color{pink}{u_t^{\text{target}}(x|z)}
 \right]
 \end{aligned}
-$$<p>where in $(i)$ we expressed the expected value as an integral, in $(ii)$ we use eq. $(2)$, in $(iii)$ we use the fact that integrals are linear, and in $(iv)$ we express the integral as an expected value.</p><p>Note that this was really the <strong>crucial step</strong> of the proof:</p><blockquote><p>The beginning of the equality used the marginal vector field $u^{\text{target}}_t(x)$, while the end uses the conditional vector field $u^{\text{target}}_t(x|z)$.</p></blockquote><details><summary>Regarding (iii), it says integral is linear, let's get to the definition of linearity.</summary>For an operator $T$, it is **linear** if for any functions $f, g$ and scalars $a, b$,
+$$<p>where in $(i)$ we expressed the expected value as an integral, in $(ii)$ we use eq. $(2)$, in $(iii)$ we use the fact that integrals are linear, and in $(iv)$ we express the integral as an expected value.</p>
+<p>Note that this was really the <strong>crucial step</strong> of the proof:</p>
+<blockquote>
+<p>The beginning of the equality used the marginal vector field $u^{\text{target}}_t(x)$, while the end uses the conditional vector field $u^{\text{target}}_t(x|z)$.</p>
+</blockquote>
+<details>
+<summary>Regarding (iii), it says integral is linear, let's get to the definition of linearity.</summary>
+For an operator $T$, it is **linear** if for any functions $f, g$ and scalars $a, b$,
 $$
 T(af + bg) = aT(f) + bT(g).
-$$<p>This combines two properties:</p><ul><li><strong>Additivity</strong>: $T(f + g) = T(f) + T(g)$</li><li><strong>Homogeneity</strong>: $T(af) = aT(f)$</li></ul></details><p>We plug is into the equation for L FMto get:</p><p>$$
+$$
+<p>This combines two properties:</p>
+<ul>
+<li><strong>Additivity</strong>: $T(f + g) = T(f) + T(g)$</li>
+<li><strong>Homogeneity</strong>: $T(af) = aT(f)$</li>
+</ul>
+</details>
+<p>We plug is into the equation for L FMto get:</p>
+<p>$$
 \begin{aligned}
 \mathcal{L}<em>{\text{FM}}(\theta)
-&\overset{(i)}{=}
+&amp;\overset{(i)}{=}
 \mathbb{E}</em>{t \sim \text{Unif}, z \sim p_{\text{data}}, x \sim p_t(\cdot|z)}
-\left[\left|u_t^\theta(x)\right|^2\right]</p><ul><li>2\mathbb{E}<em>{t \sim \text{Unif}, z \sim p</em>{\text{data}}, x \sim p_t(\cdot|z)}
-\left[u_t^\theta(x)^\top u_t^{\text{target}}(x|z)\right]</li></ul><ul><li>C_1 \
-&\overset{(ii)}{=}
+\left[\left|u_t^\theta(x)\right|^2\right]</p>
+<ul>
+<li>2\mathbb{E}<em>{t \sim \text{Unif}, z \sim p</em>{\text{data}}, x \sim p_t(\cdot|z)}
+\left[u_t^\theta(x)^\top u_t^{\text{target}}(x|z)\right]</li>
+</ul>
+<ul>
+<li>C_1 \
+&amp;\overset{(ii)}{=}
 \mathbb{E}<em>{t \sim \text{Unif}, z \sim p</em>{\text{data}}, x \sim p_t(\cdot|z)}
 \left[
-\left|u_t^\theta(x)\right|^2</li></ul><ul><li>2u_t^\theta(x)^\top u_t^{\text{target}}(x|z)
+\left|u_t^\theta(x)\right|^2</li>
+</ul>
+<ul>
+<li>2u_t^\theta(x)^\top u_t^{\text{target}}(x|z)
 {\color{cyan}+ \left|u_t^{\text{target}}(x|z)\right|^2}
 {\color{red}- \left|u_t^{\text{target}}(x|z)\right|^2}
-\right]</li></ul><ul><li>C_1 \
-&\overset{(iii)}{=}
+\right]</li>
+</ul>
+<ul>
+<li>C_1 \
+&amp;\overset{(iii)}{=}
 \mathbb{E}<em>{t \sim \text{Unif}, z \sim p</em>{\text{data}}, x \sim p_t(\cdot|z)}
-\left[\left|u_t^\theta(x) - u_t^{\text{target}}(x|z)\right|^2\right]</li><li>\underbrace{\mathbb{E}<em>{t \sim \text{Unif}, z \sim p</em>{\text{data}}, x \sim p_t(\cdot|z)}
-\left[-\left|u_t^{\text{target}}(x|z)\right|^2\right]}_{C_2}</li><li>C_1 \
-&\overset{(iv)}{=}
+\left[\left|u_t^\theta(x) - u_t^{\text{target}}(x|z)\right|^2\right]</li>
+<li>\underbrace{\mathbb{E}<em>{t \sim \text{Unif}, z \sim p</em>{\text{data}}, x \sim p_t(\cdot|z)}
+\left[-\left|u_t^{\text{target}}(x|z)\right|^2\right]}_{C_2}</li>
+<li>C_1 \
+&amp;\overset{(iv)}{=}
 \mathcal{L}<em>{\text{CFM}}(\theta) + \underbrace{C_2 + C_1}</em>{=:C}.
 \end{aligned}
-$$</li></ul><p>where in $(i)$ we plugged in the derived equation, in $(ii)$ we added and subtracted the same value, in $(iii)$ we used the formula $\|a-b\|^2 = \|a\|^2 - 2a^\top b + \|b\|^2$ again, and in $(iv)$ we defined a constant in $\theta$. This finishes the proof.</p><p>Once $u_t^\theta$ has been trained, we may simulate the flow model</p>$$
+$$</li>
+</ul>
+<p>where in $(i)$ we plugged in the derived equation, in $(ii)$ we added and subtracted the same value, in $(iii)$ we used the formula $\|a-b\|^2 = \|a\|^2 - 2a^\top b + \|b\|^2$ again, and in $(iv)$ we defined a constant in $\theta$. This finishes the proof.</p>
+<p>Once $u_t^\theta$ has been trained, we may simulate the flow model</p>
+$$
 \mathrm{d}X_t = u_t^\theta(X_t)\,\mathrm{d}t,
 \qquad
 X_0 \sim p_{\text{init}}
-$$<p>via, e.g., algorithm 1 to obtain samples $X_1 \sim p_{\text{data}}$. Let us now instantiate the conditional flow matching loss for the choice of Gaussian probability paths:</p><h1 id=why-conditional-training-recovers-the-marginal-field-visual-view>Why Conditional Training Recovers the Marginal Field: Visual View<a hidden class=anchor aria-hidden=true href=#why-conditional-training-recovers-the-marginal-field-visual-view>#</a></h1><h2 id=the-apparent-contradiction>The Apparent Contradiction<a hidden class=anchor aria-hidden=true href=#the-apparent-contradiction>#</a></h2><p>Training minimizes the CFM loss:</p>$$\mathcal{L}_{\text{CFM}}(\theta) = \mathbb{E}_{t,\, z \sim p_{\text{data}},\, x \sim p_t(x|z)} \left[\| u_t^\theta(x, t) - u_t^{\text{target}}(x|z) \|^2 \right]$$<p>Each training sample provides a <em>conditional</em> target $u_t(x|z)$ — yet the trained model learns the <em>marginal</em> vector field $u_t(x) = \mathbb{E}_{z \sim p(z|x,t)}[u_t(x|z)]$. Why?</p><h2 id=training-data-sparsity-and-the-contradiction-made-visible>Training Data Sparsity and the Contradiction Made Visible<a hidden class=anchor aria-hidden=true href=#training-data-sparsity-and-the-contradiction-made-visible>#</a></h2><p>The following visualization calls <code>visualize_relevant_training_data</code>, which zooms into the neighbourhood of the query point $x^*$ at the optimal time $t^*$ and displays only the training samples within a small spatial and time window. The plot simultaneously reveals two things:</p><p><strong>1. Training data sparsity.</strong> Only a handful of points (here, $n=39$) land near any specific $(x, t)$ location. Many fall outside the bounding box entirely. Despite this, the model converges to the correct marginal vector field because neural network generalization covers the $(x, t)$ input space smoothly.</p><p><strong>2. The contradiction made visible.</strong> Each colour-coded arrow is the conditional target $u_t(x_i | z_i)$ for a nearby training sample, coloured by $\log p_t(x_i | z_i)$ (plasma colormap: bright yellow = high likelihood, dark purple = low). Because each $z_i$ is different, the arrows scatter in conflicting directions — even though the inputs $(x_i, t_i)$ are nearly identical. This is the contradiction: the model receives a single input $(x, t)$ but is asked to match many different targets simultaneously. The orange arrow — the learned $u_t^\theta(x^*)$ — is a posterior average of conditional vector field as proved by last visualization. This is not a coincidence: since $z$ is never passed to the model, the L2 loss has no other choice but to pull $u_t^\theta(x, t)$ toward $\mathbb{E}_{z \sim p(z|x,t)}[u_t(x|z)]$, which is exactly the marginal vector field $u_t^{\text{target}}(x)$.</p><figure><img src=./visualize_training_data.png width=900><figcaption>Figure 2. Visualization of training data.</figcaption></figure><figure><img src=./visualize_relevant_training_data.png width=900><figcaption>Figure 3. Visualization of relevant training data.</figcaption></figure><h2 id=the-key--is-hidden-from-the-model>The Key: $z$ is Hidden from the Model<a hidden class=anchor aria-hidden=true href=#the-key--is-hidden-from-the-model>#</a></h2><p>The model signature is $u_t^\theta(x, t)$ — it takes only $(x, t)$ as input, never $z$.</p><p>During training, $z$ appears in the data only to <strong>compute the supervision target</strong> $u_t(x|z)$; it is discarded and never passed to the network. This creates a fundamental information bottleneck.</p><table><thead><tr><th>Quantity</th><th>Available to the model during training</th><th>Available at inference</th></tr></thead><tbody><tr><td>$x$</td><td>Yes (input)</td><td>Yes (input)</td></tr><tr><td>$t$</td><td>Yes (input)</td><td>Yes (input)</td></tr><tr><td>$z$</td><td>No — used only to compute target, then discarded</td><td>No</td></tr><tr><td>$u_t(x\|z)$</td><td>Yes — as the loss target</td><td>No</td></tr></tbody></table><h2 id=why-hidden--forces-the-model-to-learn-the-marginal---visual>Why Hidden $z$ Forces the Model to Learn the Marginal - &ldquo;Visual&rdquo;<a hidden class=anchor aria-hidden=true href=#why-hidden--forces-the-model-to-learn-the-marginal---visual>#</a></h2><p>For any fixed input $(x, t)$, many different $z$&rsquo;s are compatible with that $x$ at that time (because $\beta_t > 0$ at intermediate times, so the Gaussian clouds overlap). The model must emit a <strong>single output vector</strong> for all those different $z$&rsquo;s, but the training targets $u_t(x|z_1), u_t(x|z_2), \ldots$ all point in different directions.</p><p>This is a standard regression problem with a hidden variable. The fundamental result is:</p><blockquote><p>The minimizer of $\mathbb{E}[(y - c)^2]$ over a constant $c$ (one that cannot depend on the hidden variable) is $c^* = \mathbb{E}[y]$.</p></blockquote><p>Here $y = u_t(x|z)$ and $c = u_t^\theta(x, t)$ is constant with respect to $z$. So the L2-optimal prediction is:</p>$$u_t^{\theta*}(x, t) = \mathbb{E}_{z \sim p(z|x,t)}\left[ u_t(x|z) \right] = u_t^{\text{target}}(x)$$<p>The model cannot &ldquo;pick a side&rdquo; when it cannot see which $z$ generated the sample. The averaging is a direct consequence of the L2 loss geometry combined with the hidden $z$.</p><h2 id=connection-to-theorem-18-algebraic-view>Connection to Theorem 18 (Algebraic View)<a hidden class=anchor aria-hidden=true href=#connection-to-theorem-18-algebraic-view>#</a></h2><p>Theorem 18 arrives at the same conclusion by expanding the CFM loss:</p>$$\|u_t^\theta - u_t(x|z)\|^2 = \|u_t^\theta - u_t(x)\|^2 + 2(u_t^\theta - u_t(x))\cdot\underbrace{(u_t(x) - u_t(x|z))}_{\text{zero mean over } z|x,t} + \underbrace{\|u_t(x) - u_t(x|z)\|^2}_{\text{constant in } \theta}$$<p>Taking $\mathbb{E}_{z \sim p(z|x,t)}[\cdot]$: the cross-term vanishes because $\mathbb{E}[u_t(x|z) \mid x,t] = u_t(x)$, and the last term is independent of $\theta$. Therefore $\nabla_\theta \mathcal{L}_{\text{CFM}} = \nabla_\theta \mathcal{L}_{\text{FM}}$ — same gradients, same minimizer.</p><p>The two perspectives are two sides of the same coin:</p><ul><li><strong>Regression view</strong>: hidden $z$ + L2 loss → forced averaging → learns marginal.</li><li><strong>Algebraic view (Theorem 18)</strong>: cross-term vanishes in expectation → $\mathcal{L}_{\text{CFM}}$ and $\mathcal{L}_{\text{FM}}$ share the same minimizer.</li></ul><h2 id=why-sparse-training-data-is-sufficient>Why Sparse Training Data is Sufficient<a hidden class=anchor aria-hidden=true href=#why-sparse-training-data-is-sufficient>#</a></h2><p>The two effects play distinct roles:</p><table><thead><tr><th>Effect</th><th>What space is covered</th><th>What it explains</th></tr></thead><tbody><tr><td><strong>Hidden $z$ + L2 averaging</strong></td><td>Coverage of $z$&rsquo;s at a fixed $(x,t)$</td><td><em>What</em> the model converges to: the marginal $u_t(x)$</td></tr><tr><td><strong>Neural network generalization</strong></td><td>Coverage of the $(x,t)$ input space</td><td><em>How efficiently</em> training reaches that target from finite data</td></tr></tbody></table><p>Even though the training set is a finite sample, the MLP generalizes smoothly across $(x,t)$ space, so optimizing the loss on sampled mini-batches still drives $u_t^\theta$ toward the true minimizer everywhere. Generalization is a prerequisite — it ensures sensible outputs across all of $(x,t)$ — but it does not explain <em>why</em> those outputs are specifically the posterior average of conditional vector fields. That is entirely due to the hidden $z$ mechanism.</p><h1 id=flow-matching-loss-for-gaussian-conditional-probability-paths>Flow Matching Loss for Gaussian Conditional Probability Paths<a hidden class=anchor aria-hidden=true href=#flow-matching-loss-for-gaussian-conditional-probability-paths>#</a></h1><p>Let us return to the example of Gaussian probability paths</p>$$
+$$<p>via, e.g., algorithm 1 to obtain samples $X_1 \sim p_{\text{data}}$. Let us now instantiate the conditional flow matching loss for the choice of Gaussian probability paths:</p>
+<h1 id="why-conditional-training-recovers-the-marginal-field-visual-view">Why Conditional Training Recovers the Marginal Field: Visual View<a hidden class="anchor" aria-hidden="true" href="#why-conditional-training-recovers-the-marginal-field-visual-view">#</a></h1>
+<h2 id="the-apparent-contradiction">The Apparent Contradiction<a hidden class="anchor" aria-hidden="true" href="#the-apparent-contradiction">#</a></h2>
+<p>Training minimizes the CFM loss:
+</p>
+$$\mathcal{L}_{\text{CFM}}(\theta) = \mathbb{E}_{t,\, z \sim p_{\text{data}},\, x \sim p_t(x|z)} \left[\| u_t^\theta(x, t) - u_t^{\text{target}}(x|z) \|^2 \right]$$<p>Each training sample provides a <em>conditional</em> target $u_t(x|z)$ — yet the trained model learns the <em>marginal</em> vector field $u_t(x) = \mathbb{E}_{z \sim p(z|x,t)}[u_t(x|z)]$. Why?</p>
+<h2 id="training-data-sparsity-and-the-contradiction-made-visible">Training Data Sparsity and the Contradiction Made Visible<a hidden class="anchor" aria-hidden="true" href="#training-data-sparsity-and-the-contradiction-made-visible">#</a></h2>
+<p>The following visualization calls <code>visualize_relevant_training_data</code>, which zooms into the neighbourhood of the query point $x^*$ at the optimal time $t^*$ and displays only the training samples within a small spatial and time window. The plot simultaneously reveals two things:</p>
+<p><strong>1. Training data sparsity.</strong> Only a handful of points (here, $n=39$) land near any specific $(x, t)$ location. Many fall outside the bounding box entirely. Despite this, the model converges to the correct marginal vector field because neural network generalization covers the $(x, t)$ input space smoothly.</p>
+<p><strong>2. The contradiction made visible.</strong> Each colour-coded arrow is the conditional target $u_t(x_i | z_i)$ for a nearby training sample, coloured by $\log p_t(x_i | z_i)$ (plasma colormap: bright yellow = high likelihood, dark purple = low). Because each $z_i$ is different, the arrows scatter in conflicting directions — even though the inputs $(x_i, t_i)$ are nearly identical. This is the contradiction: the model receives a single input $(x, t)$ but is asked to match many different targets simultaneously. The orange arrow — the learned $u_t^\theta(x^*)$ — is a posterior average of conditional vector field as proved by last visualization. This is not a coincidence: since $z$ is never passed to the model, the L2 loss has no other choice but to pull $u_t^\theta(x, t)$ toward $\mathbb{E}_{z \sim p(z|x,t)}[u_t(x|z)]$, which is exactly the marginal vector field $u_t^{\text{target}}(x)$.</p>
+<figure>
+  <img src="./visualize_training_data.png" width="900" />
+  <figcaption>Figure 2. Visualization of training data.</figcaption>
+</figure>
+<figure>
+  <img src="./visualize_relevant_training_data.png" width="900" />
+  <figcaption>Figure 3. Visualization of relevant training data.</figcaption>
+</figure>
+<h2 id="the-key--is-hidden-from-the-model">The Key: $z$ is Hidden from the Model<a hidden class="anchor" aria-hidden="true" href="#the-key--is-hidden-from-the-model">#</a></h2>
+<p>The model signature is $u_t^\theta(x, t)$ — it takes only $(x, t)$ as input, never $z$.</p>
+<p>During training, $z$ appears in the data only to <strong>compute the supervision target</strong> $u_t(x|z)$; it is discarded and never passed to the network. This creates a fundamental information bottleneck.</p>
+<table>
+  <thead>
+      <tr>
+          <th>Quantity</th>
+          <th>Available to the model during training</th>
+          <th>Available at inference</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>$x$</td>
+          <td>Yes (input)</td>
+          <td>Yes (input)</td>
+      </tr>
+      <tr>
+          <td>$t$</td>
+          <td>Yes (input)</td>
+          <td>Yes (input)</td>
+      </tr>
+      <tr>
+          <td>$z$</td>
+          <td>No — used only to compute target, then discarded</td>
+          <td>No</td>
+      </tr>
+      <tr>
+          <td>$u_t(x\|z)$</td>
+          <td>Yes — as the loss target</td>
+          <td>No</td>
+      </tr>
+  </tbody>
+</table>
+<h2 id="why-hidden--forces-the-model-to-learn-the-marginal---visual">Why Hidden $z$ Forces the Model to Learn the Marginal - &ldquo;Visual&rdquo;<a hidden class="anchor" aria-hidden="true" href="#why-hidden--forces-the-model-to-learn-the-marginal---visual">#</a></h2>
+<p>For any fixed input $(x, t)$, many different $z$&rsquo;s are compatible with that $x$ at that time (because $\beta_t > 0$ at intermediate times, so the Gaussian clouds overlap). The model must emit a <strong>single output vector</strong> for all those different $z$&rsquo;s, but the training targets $u_t(x|z_1), u_t(x|z_2), \ldots$ all point in different directions.</p>
+<p>This is a standard regression problem with a hidden variable. The fundamental result is:</p>
+<blockquote>
+<p>The minimizer of $\mathbb{E}[(y - c)^2]$ over a constant $c$ (one that cannot depend on the hidden variable) is $c^* = \mathbb{E}[y]$.</p>
+</blockquote>
+<p>Here $y = u_t(x|z)$ and $c = u_t^\theta(x, t)$ is constant with respect to $z$. So the L2-optimal prediction is:
+</p>
+$$u_t^{\theta*}(x, t) = \mathbb{E}_{z \sim p(z|x,t)}\left[ u_t(x|z) \right] = u_t^{\text{target}}(x)$$<p>The model cannot &ldquo;pick a side&rdquo; when it cannot see which $z$ generated the sample. The averaging is a direct consequence of the L2 loss geometry combined with the hidden $z$.</p>
+<h2 id="connection-to-theorem-18-algebraic-view">Connection to Theorem 18 (Algebraic View)<a hidden class="anchor" aria-hidden="true" href="#connection-to-theorem-18-algebraic-view">#</a></h2>
+<p>Theorem 18 arrives at the same conclusion by expanding the CFM loss:
+</p>
+$$\|u_t^\theta - u_t(x|z)\|^2 = \|u_t^\theta - u_t(x)\|^2 + 2(u_t^\theta - u_t(x))\cdot\underbrace{(u_t(x) - u_t(x|z))}_{\text{zero mean over } z|x,t} + \underbrace{\|u_t(x) - u_t(x|z)\|^2}_{\text{constant in } \theta}$$<p>Taking $\mathbb{E}_{z \sim p(z|x,t)}[\cdot]$: the cross-term vanishes because $\mathbb{E}[u_t(x|z) \mid x,t] = u_t(x)$, and the last term is independent of $\theta$. Therefore $\nabla_\theta \mathcal{L}_{\text{CFM}} = \nabla_\theta \mathcal{L}_{\text{FM}}$ — same gradients, same minimizer.</p>
+<p>The two perspectives are two sides of the same coin:</p>
+<ul>
+<li><strong>Regression view</strong>: hidden $z$ + L2 loss → forced averaging → learns marginal.</li>
+<li><strong>Algebraic view (Theorem 18)</strong>: cross-term vanishes in expectation → $\mathcal{L}_{\text{CFM}}$ and $\mathcal{L}_{\text{FM}}$ share the same minimizer.</li>
+</ul>
+<h2 id="why-sparse-training-data-is-sufficient">Why Sparse Training Data is Sufficient<a hidden class="anchor" aria-hidden="true" href="#why-sparse-training-data-is-sufficient">#</a></h2>
+<p>The two effects play distinct roles:</p>
+<table>
+  <thead>
+      <tr>
+          <th>Effect</th>
+          <th>What space is covered</th>
+          <th>What it explains</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><strong>Hidden $z$ + L2 averaging</strong></td>
+          <td>Coverage of $z$&rsquo;s at a fixed $(x,t)$</td>
+          <td><em>What</em> the model converges to: the marginal $u_t(x)$</td>
+      </tr>
+      <tr>
+          <td><strong>Neural network generalization</strong></td>
+          <td>Coverage of the $(x,t)$ input space</td>
+          <td><em>How efficiently</em> training reaches that target from finite data</td>
+      </tr>
+  </tbody>
+</table>
+<p>Even though the training set is a finite sample, the MLP generalizes smoothly across $(x,t)$ space, so optimizing the loss on sampled mini-batches still drives $u_t^\theta$ toward the true minimizer everywhere. Generalization is a prerequisite — it ensures sensible outputs across all of $(x,t)$ — but it does not explain <em>why</em> those outputs are specifically the posterior average of conditional vector fields. That is entirely due to the hidden $z$ mechanism.</p>
+<h1 id="flow-matching-loss-for-gaussian-conditional-probability-paths">Flow Matching Loss for Gaussian Conditional Probability Paths<a hidden class="anchor" aria-hidden="true" href="#flow-matching-loss-for-gaussian-conditional-probability-paths">#</a></h1>
+<p>Let us return to the example of Gaussian probability paths
+</p>
+$$
 p_t(\cdot|z) = \mathcal{N}(\alpha_t z; \beta_t^2 I_d),
-$$<p>where we may sample from the conditional path via [1]</p>$$
+$$<p>
+where we may sample from the conditional path via [1]
+</p>
+$$
 \epsilon \sim \mathcal{N}(0, I_d)
 \qquad \Longrightarrow \qquad
 x_t = \alpha_t z + \beta_t \epsilon \sim \mathcal{N}(\alpha_t z, \beta_t^2 I_d) = p_t(\cdot|z).
 \tag{3}
-$$<h1 id=u_ttexttargetxz>As we derived in eq. $(21)$, the conditional vector field $u_t^{\text{target}}(x|z)$ is given by
+$$<p>As we derived in eq. $(21)$, the conditional vector field $u_t^{\text{target}}(x|z)$ is given by
+</p>
 $$
-u_t^{\text{target}}(x|z)</h1><p>\left(\dot{\alpha}_t - \frac{\dot{\beta}_t}{\beta_t}\alpha_t\right)z</p><ul><li>\frac{\dot{\beta}<em>t}{\beta_t}x,
-$$
+u_t^{\text{target}}(x|z) =
+\left(\dot{\alpha}_t - \frac{\dot{\beta}_t}{\beta_t}\alpha_t\right)z +
+\frac{\dot{\beta}_t}{\beta_t}x,
+$$<p>
 where $\dot{\alpha}_t = \partial_t \alpha_t$ and $\dot{\beta}_t = \partial_t \beta_t$ are the respective time derivatives. Plugging in this formula, the conditional flow matching loss reads
+</p>
 $$
-\mathcal{L}</em>{\text{CFM}}(\theta)
-=
-\mathbb{E}<em>{t \sim \text{Unif}, z \sim p</em>{\text{data}}, x \sim \mathcal{N}(\alpha_t z, \beta_t^2 I_d)}
+\mathcal{L}_{\text{CFM}}(\theta) =
+\mathbb{E}_{t \sim \text{Unif}, z \sim p_{\text{data}}, x \sim \mathcal{N}(\alpha_t z, \beta_t^2 I_d)}
 \left[
-\left|u_t^\theta(x) -
+\left\|u_t^\theta(x) -
 \left(
-\left(\dot{\alpha}_t - \frac{\dot{\beta}_t}{\beta_t}\alpha_t\right)z</li><li>\frac{\dot{\beta}<em>t}{\beta_t}x
-\right)\right|^2
+\left(\dot{\alpha}_t - \frac{\dot{\beta}_t}{\beta_t}\alpha_t\right)z +
+\frac{\dot{\beta}_t}{\beta_t}x
+\right)\right\|^2
 \right]
-$$
+$$<p>
+</p>
 $$
 \overset{(i)}{=}
-\mathbb{E}</em>{t \sim \text{Unif}, z \sim p_{\text{data}}, \epsilon \sim \mathcal{N}(0, I_d)}
+\mathbb{E}_{t \sim \text{Unif}, z \sim p_{\text{data}}, \epsilon \sim \mathcal{N}(0, I_d)}
 \left[
-\left|u_t^\theta(\alpha_t z + \beta_t \epsilon) - (\dot{\alpha}_t z + \dot{\beta}_t \epsilon)\right|^2
+\left\|u_t^\theta(\alpha_t z + \beta_t \epsilon) - (\dot{\alpha}_t z + \dot{\beta}_t \epsilon)\right\|^2
 \right],
-$$
-where in $(i)$ we plugged in eq. $(3)$ and replaced $x$ by $\alpha_t z + \beta_t \epsilon$. Note the simplicity of $\mathcal{L}_{\text{CFM}}$: we sample a data point $z$, sample some noise $\epsilon$, and then take a mean squared error.</li></ul><h1 id=mathcall_textcfmtheta>Let us make this even more concrete for the special case of $\alpha_t = t$ and $\beta_t = 1 - t$. The corresponding probability path
+$$<p>
+where in $(i)$ we plugged in eq. $(3)$ and replaced $x$ by $\alpha_t z + \beta_t \epsilon$. Note the simplicity of $\mathcal{L}_{\text{CFM}}$: we sample a data point $z$, sample some noise $\epsilon$, and then take a mean squared error.</p>
+<p>Let us make this even more concrete for the special case of $\alpha_t = t$ and $\beta_t = 1 - t$. The corresponding probability path
+</p>
 $$
 p_t(x|z) = \mathcal{N}(tz, (1-t)^2)
-$$
+$$<p>
 is sometimes referred to as the (Gaussian) <strong>CondOT probability path</strong>. Then we have $\dot{\alpha}_t = 1$ and $\dot{\beta}_t = -1$, so that
+</p>
 $$
-\mathcal{L}_{\text{cfm}}(\theta)</h1><p>\mathbb{E}<em>{t \sim \text{Unif}, z \sim p</em>{\text{data}}, \epsilon \sim \mathcal{N}(0, I_d)}
+\mathcal{L}_{\text{cfm}}(\theta) =
+\mathbb{E}_{t \sim \text{Unif}, z \sim p_{\text{data}}, \epsilon \sim \mathcal{N}(0, I_d)}
 \left[
-\left|u_t^\theta({\color{orange}tz + (1-t)\epsilon}) - (z - \epsilon)\right|^2
+\left\|u_t^\theta({\color{orange}tz + (1-t)\epsilon}) - (z - \epsilon)\right\|^2
 \right].
-$$</p><p>Many famous state-of-the-art models have been trained using this simple yet effective procedure, e.g. Stable Diffusion 3, Meta&rsquo;s Movie Gen Video, and probably many more proprietary models. In fig. 9, we visualize it in a simple example and in algorithm 3 we summarize the training procedure. [1]</p>$$
+$$<p>Many famous state-of-the-art models have been trained using this simple yet effective procedure, e.g. Stable Diffusion 3, Meta&rsquo;s Movie Gen Video, and probably many more proprietary models. In fig. 9, we visualize it in a simple example and in algorithm 3 we summarize the training procedure. [1]</p>
+$$
 \boxed{
 \begin{aligned}
 & \textbf{Algorithm 3 } \text{Flow Matching Training Procedure (here for Gaussian CondOT path } p_t(x|z) = \mathcal{N}(tz,(1-t)^2)\text{)} \\
@@ -136,11 +593,113 @@ $$</p><p>Many famous state-of-the-art models have been trained using this simple
 & 8: \; \textbf{end for}
 \end{aligned}
 }
-$$<h2 id=intuition-behind-the-flow-matching-loss>Intuition Behind the Flow Matching Loss<a hidden class=anchor aria-hidden=true href=#intuition-behind-the-flow-matching-loss>#</a></h2><p>The flow matching loss is given by</p>$$
+$$<h2 id="intuition-behind-the-flow-matching-loss">Intuition Behind the Flow Matching Loss<a hidden class="anchor" aria-hidden="true" href="#intuition-behind-the-flow-matching-loss">#</a></h2>
+<p>The flow matching loss is given by
+</p>
+$$
 \mathcal{L}(\theta) = \left\|u_t^{\theta}(x) - (z - \epsilon)\right\|^2, \quad \text{where} \; x = t z + (1-t)\epsilon
-$$<p>For the (Gaussian) CondOT path, once both $z$ and $\epsilon$ are fixed, the trajectory</p>$$ x_t = t z + (1-t)\epsilon $$<p>is a straight line, so its velocity is the constant vector</p>$$ \frac{d x_t}{dt} = z-\epsilon. $$<p>Accordingly, the loss trains $u_t^\theta(x)$ to match the full <strong>target</strong> velocity $z-\epsilon$, including both its direction and its magnitude.
-Importantly, this target velocity is determined jointly by $z$ and $\epsilon$: changing $\epsilon$ changes the straight-line path, and therefore changes the velocity as well.</p><figure><img src=./compare_conditional_probability_path_linear_beta.png width=900><figcaption>Figure 4. Linear beta schedule: $\alpha_t = t$ and $\beta_t = 1-t$. For fixed $z$ and $\epsilon$, the conditional trajectory $x_t = tz + (1-t)\epsilon$ is a straight line with constant velocity $z-\epsilon$, so the flow matching objective trains $u_t^\theta(x)$ to recover this full target velocity, including both direction and magnitude.</figcaption></figure><h1 id=references>References<a hidden class=anchor aria-hidden=true href=#references>#</a></h1><p>[1] Peter Holderrieth and Ezra Erives. <em>Introduction to Flow Matching and Diffusion Models</em>. 2025. <a href=https://diffusion.csail.mit.edu/>https://diffusion.csail.mit.edu/</a></p><p>[2] Bai-YunHan. <em>Flow-matching-and-Diffusion-Model-Fundamentals</em>. GitHub repository. <a href=https://github.com/Bai-YunHan/Flow-matching-and-Diffusion-Model-Fundamentals>https://github.com/Bai-YunHan/Flow-matching-and-Diffusion-Model-Fundamentals</a></p></div><footer class=post-footer><ul class=post-tags><li><a href=https://bai-yunhan.github.io/tags/generative/>Generative</a></li></ul></footer></article></main><footer class=footer><span>&copy; 2026 <a href=https://bai-yunhan.github.io/>Yechao's Blog</a></span> ·
-<span>Powered by
-<a href=https://gohugo.io/ rel="noopener noreferrer" target=_blank>Hugo</a> &
-<a href=https://github.com/adityatelange/hugo-PaperMod/ rel=noopener target=_blank>PaperMod</a></span></footer><a href=#top aria-label="go to top" title="Go to Top (Alt + G)" class=top-link id=top-link accesskey=g><svg viewBox="0 0 12 6" fill="currentColor"><path d="M12 6H0l6-6z"/></svg>
-</a><script>let menu=document.getElementById("menu");if(menu){const e=localStorage.getItem("menu-scroll-position");e&&(menu.scrollLeft=parseInt(e,10)),menu.onscroll=function(){localStorage.setItem("menu-scroll-position",menu.scrollLeft)}}document.querySelectorAll('a[href^="#"]').forEach(e=>{e.addEventListener("click",function(e){e.preventDefault();var t=this.getAttribute("href").substr(1);window.matchMedia("(prefers-reduced-motion: reduce)").matches?document.querySelector(`[id='${decodeURIComponent(t)}']`).scrollIntoView():document.querySelector(`[id='${decodeURIComponent(t)}']`).scrollIntoView({behavior:"smooth"}),t==="top"?history.replaceState(null,null," "):history.pushState(null,null,`#${t}`)})})</script><script>var mybutton=document.getElementById("top-link");window.onscroll=function(){document.body.scrollTop>800||document.documentElement.scrollTop>800?(mybutton.style.visibility="visible",mybutton.style.opacity="1"):(mybutton.style.visibility="hidden",mybutton.style.opacity="0")}</script><script>document.getElementById("theme-toggle").addEventListener("click",()=>{const e=document.querySelector("html");e.dataset.theme==="dark"?(e.dataset.theme="light",localStorage.setItem("pref-theme","light")):(e.dataset.theme="dark",localStorage.setItem("pref-theme","dark"))})</script></body></html>
+$$<p>For the (Gaussian) CondOT path, once both $z$ and $\epsilon$ are fixed, the trajectory
+</p>
+$$ x_t = t z + (1-t)\epsilon $$<p>
+is a straight line, so its velocity is the constant vector
+</p>
+$$ \frac{d x_t}{dt} = z-\epsilon. $$<p>
+Accordingly, the loss trains $u_t^\theta(x)$ to match the full <strong>target</strong> velocity $z-\epsilon$, including both its direction and its magnitude.
+Importantly, this target velocity is determined jointly by $z$ and $\epsilon$: changing $\epsilon$ changes the straight-line path, and therefore changes the velocity as well.</p>
+<figure>
+  <img src="./compare_conditional_probability_path_linear_beta.png" width="900" />
+  <figcaption>Figure 4. Linear beta schedule: $\alpha_t = t$ and $\beta_t = 1-t$. For fixed $z$ and $\epsilon$, the conditional trajectory $x_t = tz + (1-t)\epsilon$ is a straight line with constant velocity $z-\epsilon$, so the flow matching objective trains $u_t^\theta(x)$ to recover this full target velocity, including both direction and magnitude.</figcaption>
+</figure>
+<h1 id="references">References<a hidden class="anchor" aria-hidden="true" href="#references">#</a></h1>
+<p>[1] Peter Holderrieth and Ezra Erives. <em>Introduction to Flow Matching and Diffusion Models</em>. 2025. <a href="https://diffusion.csail.mit.edu/">https://diffusion.csail.mit.edu/</a></p>
+<p>[2] Bai-YunHan. <em>Companion code for Introduction to Flow Matching Model</em>. GitHub repository. <a href="https://github.com/Bai-YunHan/Companion-code-for-Introduction-to-Flow-Matching-Model">https://github.com/Bai-YunHan/Companion-code-for-Introduction-to-Flow-Matching-Model</a></p>
+
+
+  </div>
+
+  <footer class="post-footer">
+    <ul class="post-tags">
+      <li><a href="https://bai-yunhan.github.io/tags/generative/">Generative</a></li>
+    </ul>
+  </footer>
+</article>
+    </main>
+    
+<footer class="footer">
+        <span>&copy; 2026 <a href="https://bai-yunhan.github.io/">Yechao&#39;s Blog</a></span> · 
+
+    <span>
+        Powered by
+        <a href="https://gohugo.io/" rel="noopener noreferrer" target="_blank">Hugo</a> &
+        <a href="https://github.com/adityatelange/hugo-PaperMod/" rel="noopener" target="_blank">PaperMod</a>
+    </span>
+</footer>
+<a href="#top" aria-label="go to top" title="Go to Top (Alt + G)" class="top-link" id="top-link" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentColor">
+        <path d="M12 6H0l6-6z" />
+    </svg>
+</a>
+
+<script>
+    let menu = document.getElementById('menu');
+    if (menu) {
+        
+        const scrollPosition = localStorage.getItem("menu-scroll-position");
+        if (scrollPosition) {
+            menu.scrollLeft = parseInt(scrollPosition, 10);
+        }
+        
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+
+</script>
+<script>
+    var mybutton = document.getElementById("top-link");
+    window.onscroll = function () {
+        if (document.body.scrollTop > 800 || document.documentElement.scrollTop > 800) {
+            mybutton.style.visibility = "visible";
+            mybutton.style.opacity = "1";
+        } else {
+            mybutton.style.visibility = "hidden";
+            mybutton.style.opacity = "0";
+        }
+    };
+
+</script>
+<script>
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+        const html = document.querySelector("html");
+        if (html.dataset.theme === "dark") {
+            html.dataset.theme = 'light';
+            localStorage.setItem("pref-theme", 'light');
+        } else {
+            html.dataset.theme = 'dark';
+            localStorage.setItem("pref-theme", 'dark');
+        }
+    })
+
+</script>
+</body>
+
+</html>

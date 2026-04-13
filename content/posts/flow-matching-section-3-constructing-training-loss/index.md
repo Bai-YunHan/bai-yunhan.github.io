@@ -59,17 +59,17 @@ But wait, what sense does it make to regress against the conditional vector fiel
 As we can see, the samples from the learned marginal ODE visually match the ground-truth probability path. This suggests that, although we train against the tractable conditional vector field $u_t^{\text{target}}(x|z)$, the learned model still recovers the marginal behavior governed by $u_t^{\text{target}}(x)$.
 
 > **Theorem 18.** The marginal flow matching loss equals the conditional flow matching loss up to a constant. That is,
->
-> $$
-> \mathcal{L}_{\text{FM}}(\theta) = \mathcal{L}_{\text{CFM}}(\theta) + C,
-> $$
->
+
+$$
+\mathcal{L}_{\text{FM}}(\theta) = \mathcal{L}_{\text{CFM}}(\theta) + C,
+$$
+
 > where $C$ is independent of $\theta$. Therefore, their gradients coincide:
->
-> $$
-> \nabla_\theta \mathcal{L}_{\text{FM}}(\theta) = \nabla_\theta \mathcal{L}_{\text{CFM}}(\theta).
-> $$
->
+
+$$
+\nabla_\theta \mathcal{L}_{\text{FM}}(\theta) = \nabla_\theta \mathcal{L}_{\text{CFM}}(\theta).
+$$
+
 > Hence, minimizing $\mathcal{L}_{\text{CFM}}(\theta)$ with stochastic gradient descent (SGD) is equivalent to minimizing $\mathcal{L}_{\text{FM}}(\theta)$ in the same fashion. In particular, for the minimizer $\theta^*$ of $\mathcal{L}_{\text{CFM}}(\theta)$, it will hold that $u_t^{\theta^*} = u_t^{\text{target}}$ (assuming an infinitely expressive parameterization). [1]
 
 **Proof.** The proof works by expanding the mean-squared error into three components and removing constants. [1]
@@ -280,21 +280,19 @@ $$
 
 As we derived in eq. $(21)$, the conditional vector field $u_t^{\text{target}}(x|z)$ is given by
 $$
-u_t^{\text{target}}(x|z)
-=
-\left(\dot{\alpha}_t - \frac{\dot{\beta}_t}{\beta_t}\alpha_t\right)z
-+ \frac{\dot{\beta}_t}{\beta_t}x,
+u_t^{\text{target}}(x|z) =
+\left(\dot{\alpha}_t - \frac{\dot{\beta}_t}{\beta_t}\alpha_t\right)z +
+\frac{\dot{\beta}_t}{\beta_t}x,
 $$
 where $\dot{\alpha}_t = \partial_t \alpha_t$ and $\dot{\beta}_t = \partial_t \beta_t$ are the respective time derivatives. Plugging in this formula, the conditional flow matching loss reads
 $$
-\mathcal{L}_{\text{CFM}}(\theta)
-=
+\mathcal{L}_{\text{CFM}}(\theta) =
 \mathbb{E}_{t \sim \text{Unif}, z \sim p_{\text{data}}, x \sim \mathcal{N}(\alpha_t z, \beta_t^2 I_d)}
 \left[
 \left\|u_t^\theta(x) -
 \left(
-\left(\dot{\alpha}_t - \frac{\dot{\beta}_t}{\beta_t}\alpha_t\right)z
-+ \frac{\dot{\beta}_t}{\beta_t}x
+\left(\dot{\alpha}_t - \frac{\dot{\beta}_t}{\beta_t}\alpha_t\right)z +
+\frac{\dot{\beta}_t}{\beta_t}x
 \right)\right\|^2
 \right]
 $$
@@ -313,8 +311,7 @@ p_t(x|z) = \mathcal{N}(tz, (1-t)^2)
 $$
 is sometimes referred to as the (Gaussian) **CondOT probability path**. Then we have $\dot{\alpha}_t = 1$ and $\dot{\beta}_t = -1$, so that
 $$
-\mathcal{L}_{\text{cfm}}(\theta)
-=
+\mathcal{L}_{\text{cfm}}(\theta) =
 \mathbb{E}_{t \sim \text{Unif}, z \sim p_{\text{data}}, \epsilon \sim \mathcal{N}(0, I_d)}
 \left[
 \left\|u_t^\theta({\color{orange}tz + (1-t)\epsilon}) - (z - \epsilon)\right\|^2
@@ -365,4 +362,4 @@ Importantly, this target velocity is determined jointly by $z$ and $\epsilon$: c
 
 [1] Peter Holderrieth and Ezra Erives. *Introduction to Flow Matching and Diffusion Models*. 2025. <https://diffusion.csail.mit.edu/>
 
-[2] Bai-YunHan. *Flow-matching-and-Diffusion-Model-Fundamentals*. GitHub repository. <https://github.com/Bai-YunHan/Flow-matching-and-Diffusion-Model-Fundamentals>
+[2] Bai-YunHan. *Companion code for Introduction to Flow Matching Model*. GitHub repository. <https://github.com/Bai-YunHan/Companion-code-for-Introduction-to-Flow-Matching-Model>

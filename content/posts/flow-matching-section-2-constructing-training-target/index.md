@@ -109,10 +109,10 @@ $$
 Using $\epsilon = \frac{x - \alpha_t z}{\beta_t}$, we obtain
 
 $$
-u_t^{\text{target}}(x \mid z)
-= \dot{\alpha}_t z + \dot{\beta}_t \left(\frac{x - \alpha_t z}{\beta_t}\right)
-= \left(\dot{\alpha}_t - \frac{\dot{\beta}_t}{\beta_t}\alpha_t\right) z
-+ \frac{\dot{\beta}_t}{\beta_t} x.
+u_t^{\text{target}}(x \mid z) =
+\dot{\alpha}_t z + \dot{\beta}_t \left(\frac{x - \alpha_t z}{\beta_t}\right) =
+\left(\dot{\alpha}_t - \frac{\dot{\beta}_t}{\beta_t}\alpha_t\right) z +
+\frac{\dot{\beta}_t}{\beta_t} x.
 $$
 
 This is the first major win: for every triplet $(x,t,z)$ sampled from the conditional path, we can evaluate the exact target velocity $u_t^{\text{target}}(x \mid z)$ in closed form. So the conditional problem is tractable.
@@ -137,8 +137,7 @@ $$ x = \frac{x' - \alpha_t z}{\beta_t} $$
 Substitute this back into the left-hand side:
 
 $$
-\dot{\alpha}_t z + \dot{\beta}_t x
-=
+\dot{\alpha}_t z + \dot{\beta}_t x =
 \dot{\alpha}_t z + \dot{\beta}_t \left(\frac{x' - \alpha_t z}{\beta_t}\right)
 $$
 
@@ -149,16 +148,14 @@ $$ u_t^{\mathrm{target}}(x' \mid z) $$
 So the equation becomes
 
 $$
-\dot{\alpha}_t z + \dot{\beta}_t \left(\frac{x' - \alpha_t z}{\beta_t}\right)
-=
+\dot{\alpha}_t z + \dot{\beta}_t \left(\frac{x' - \alpha_t z}{\beta_t}\right) =
 u_t^{\mathrm{target}}(x' \mid z)
 $$
 
 Finally, since $x'$ is just a dummy variable name, rename it back to $x$. Then you get
 
 $$
-\dot{\alpha}_t z + \dot{\beta}_t \left(\frac{x - \alpha_t z}{\beta_t}\right)
-=
+\dot{\alpha}_t z + \dot{\beta}_t \left(\frac{x - \alpha_t z}{\beta_t}\right) =
 u_t^{\mathrm{target}}(x \mid z)
 $$
 
@@ -226,29 +223,28 @@ Sampling from the marginal path is easy: first draw $z \sim p_{\text{data}}$, th
 As stated in Theorem 10 ("Marginalization trick") from [1]:
 > Theorem 10 (Marginalization trick) <br>
 > For every data point $z \in \mathbb{R}^d$, let $u_t^{\text{target}}(x \mid z)$ denote a conditional vector field, defined so that the corresponding ODE yields the conditional probability path $p_t(\cdot \mid z)$:
->
-> $$
-> X_0 \sim p_{\text{simple}}, \qquad \frac{d}{dt}X_t = u_t^{\text{target}}(X_t \mid z)
-> \quad \Longrightarrow \quad
-> X_t \sim p_t(\cdot \mid z). \tag{18}
-> $$
->
+
+$$
+X_0 \sim p_{\text{simple}}, \qquad \frac{d}{dt}X_t = u_t^{\text{target}}(X_t \mid z)
+\quad \Longrightarrow \quad
+X_t \sim p_t(\cdot \mid z). \tag{18}
+$$
+
 > Then the marginal vector field $u_t^{\text{target}}(x)$, defined by
->
-> $$
-> u_t^{\text{target}}(x)
-> =
-> \int u_t^{\text{target}}(x \mid z)\,
-> \frac{p_t(x \mid z)\, p_{\text{data}}(z)}{p_t(x)}\,dz \tag{19}
-> $$
->
+
+$$
+u_t^{\text{target}}(x) =
+\int u_t^{\text{target}}(x \mid z)\,
+\frac{p_t(x \mid z)\, p_{\text{data}}(z)}{p_t(x)}\,dz \tag{19}
+$$
+
 > follows the marginal probability path, i.e.
->
-> $$
-> X_0 \sim p_{\text{simple}}, \qquad \frac{d}{dt}X_t = u_t^{\text{target}}(X_t)
-> \quad \Longrightarrow \quad
-> X_t \sim p_t. \tag{20}
-> $$
+
+$$
+X_0 \sim p_{\text{simple}}, \qquad \frac{d}{dt}X_t = u_t^{\text{target}}(X_t)
+\quad \Longrightarrow \quad
+X_t \sim p_t. \tag{20}
+$$
 
 By Bayes' rule,
 
@@ -271,12 +267,12 @@ This is the key payoff: although we cannot directly write down the marginal vect
 The deeper reason why Equation (19) holds comes from the **continuity equation**, as stated in Theorem 12 ("Continuity Equation") from [1]:
 > Theorem 12 (Continuity Equation) <br>
 > Let us consider a flow model with vector field $u_t^{\mathrm{target}}$ with $X_0 \sim p_{\mathrm{init}}$. Then $X_t \sim p_t$ for all $0 \le t \le 1$ if and only if
->
-> $$
-> \partial_t p_t(x) = -\operatorname{div}\bigl(p_t u_t^{\mathrm{target}}\bigr)(x)
-> \quad \text{for all } x \in \mathbb{R}^d,\ 0 \le t \le 1, \tag{24}
-> $$
->
+
+$$
+\partial_t p_t(x) = -\operatorname{div}\bigl(p_t u_t^{\mathrm{target}}\bigr)(x)
+\quad \text{for all } x \in \mathbb{R}^d,\ 0 \le t \le 1, \tag{24}
+$$
+
 > where $\partial_t p_t(x) = \frac{d}{dt}p_t(x)$ denotes the time-derivative of $p_t(x)$. Equation 24 is known as the continuity equation.
 
 
@@ -314,16 +310,14 @@ $$
 Multiply both sides by $p_{\text{data}}(z)$ and integrate over $z$:
 
 $$
-\int \partial_t p_t(x \mid z)\, p_{\text{data}}(z)\, dz
-=
+\int \partial_t p_t(x \mid z)\, p_{\text{data}}(z)\, dz =
 -\int \operatorname{div}\bigl(p_t(x \mid z)\,u_t(x \mid z)\bigr)\, p_{\text{data}}(z)\, dz.
 $$
 
 Since the integral is over $z$ while the divergence acts on $x$, the two operations can be exchanged:
 
 $$
-\partial_t p_t(x)
-=
+\partial_t p_t(x) =
 -\operatorname{div}\left(\int p_t(x \mid z)\,u_t(x \mid z)\, p_{\text{data}}(z)\, dz\right).
 $$
 
@@ -336,18 +330,15 @@ $$
 so we identify the corresponding probability flux:
 
 $$
-p_t(x)u_t(x)
-=
+p_t(x)u_t(x) =
 \int p_t(x \mid z)\,u_t(x \mid z)\, p_{\text{data}}(z)\, dz.
 $$
 
 Finally, divide both sides by $p_t(x)$:
 
 $$
-u_t(x)
-=
-\int \frac{p_t(x \mid z)\, p_{\text{data}}(z)}{p_t(x)}\, u_t(x \mid z)\, dz
-=
+u_t(x) =
+\int \frac{p_t(x \mid z)\, p_{\text{data}}(z)}{p_t(x)}\, u_t(x \mid z)\, dz =
 \int p(z \mid x,t)\, u_t(x \mid z)\, dz.
 $$
 
@@ -486,4 +477,4 @@ To achieve this, we introduced the concept of a *probability path* to describe t
 
 [1] Peter Holderrieth and Ezra Erives. *Introduction to Flow Matching and Diffusion Models*. 2025. <https://diffusion.csail.mit.edu/>
 
-[2] Bai-YunHan. *Flow-matching-and-Diffusion-Model-Fundamentals*. GitHub repository. <https://github.com/Bai-YunHan/Flow-matching-and-Diffusion-Model-Fundamentals>
+[2] Bai-YunHan. *Companion code for Introduction to Flow Matching Model*. GitHub repository. <https://github.com/Bai-YunHan/Companion-code-for-Introduction-to-Flow-Matching-Model>
