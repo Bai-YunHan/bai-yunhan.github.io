@@ -1,5 +1,6 @@
 ---
 title: "Introduction to Flow Matching Model, Part 1 of 3: The Machinery of Generation"
+description: "A practical introduction to flow matching for generative modeling. Learn how ODEs, vector fields, and flows transport simple noise into complex data distributions, with visualizations and code."
 draft: false
 math: true
 date: 2026-04-12

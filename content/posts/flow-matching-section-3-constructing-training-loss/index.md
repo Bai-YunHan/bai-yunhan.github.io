@@ -1,5 +1,6 @@
 ---
 title: "Introduction to Flow Matching Model, Part 3 of 3: Constructing the Training Loss"
+description: "Why training on the conditional vector field recovers the marginal vector field. Derives the conditional flow matching (CFM) loss, proves its equivalence to the flow matching loss, and explains the hidden-variable averaging mechanism."
 draft: false
 math: true
 date: 2026-04-12

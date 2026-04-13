@@ -1,5 +1,6 @@
 ---
 title: "Introduction to Flow Matching Model, Part 2 of 3: Constructing the Training Target"
+description: "How to construct the training target for flow matching. Covers conditional and marginal probability paths, Gaussian conditional vector fields, and the marginalization trick with proofs and visualizations."
 draft: false
 math: true
 date: 2026-04-12
